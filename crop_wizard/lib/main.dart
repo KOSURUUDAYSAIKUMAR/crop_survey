@@ -90,6 +90,7 @@ class MyApp extends StatelessWidget {
       child: Consumer<LocaleProvider>(
         builder: (context, provider, child) {
           return MaterialApp(
+            debugShowCheckedModeBanner: false,
             title:
                 'Crop Wizard', // This will be localized later if needed from context
             theme: ThemeData(
