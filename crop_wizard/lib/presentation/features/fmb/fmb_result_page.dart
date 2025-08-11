@@ -924,11 +924,12 @@ class FmbResultPage extends StatefulWidget {
 class _FmbResultPageState extends State<FmbResultPage> {
   final MapController _mapController = MapController();
   bool _showFilters = false;
-
+  late AppLocalizations appLocalizations;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      appLocalizations = AppLocalizations.of(context)!;
       _loadData();
     });
   }
@@ -1705,9 +1706,11 @@ class _FmbResultPageState extends State<FmbResultPage> {
                   const SizedBox(height: 10),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.of(context).pop(); // Close dialog
-                      _showImageSourceActionSheet(context,
-                          AppLocalizations.of(context)!.cropClassification);
+                      _showImageSourceActionSheet(
+                          context, appLocalizations.cropClassification);
+                      // Navigator.of(context).pop(); // Close dialog
+                      // _showImageSourceActionSheet(context,
+                      //     AppLocalizations.of(context)!.cropClassification);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange[700],
@@ -1717,7 +1720,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text('Start Crop Classification'),
+                    child: const Text('Crop Classification'),
                   ),
                 ],
               ),
@@ -1837,19 +1840,17 @@ class _FmbResultPageState extends State<FmbResultPage> {
   Future<void> _pickImageAndNavigate(
       BuildContext context, ImageSource source, String featureType) async {
     final pickedFile = await ImagePicker().pickImage(source: source);
-
+    if (!mounted) return;
     if (pickedFile != null) {
       final imageFile = File(pickedFile.path);
       print('$featureType - Image selected: ${imageFile.path}');
-      // ignore: use_build_context_synchronously
-      final appLocalizations = AppLocalizations.of(context)!;
-
       if (featureType == appLocalizations.cropClassification) {
         // ignore: use_build_context_synchronously
         Provider.of<CropClassificationProvider>(context, listen: false)
             .resetState();
         // ignore: use_build_context_synchronously
         Navigator.push(
+          // ignore: use_build_context_synchronously
           context,
           MaterialPageRoute(
             builder: (_) => CropClassificationResultPage(imageFile: imageFile),
