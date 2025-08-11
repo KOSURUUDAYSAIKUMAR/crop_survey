@@ -24,6 +24,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
   final MapController _mapController = MapController();
   bool _showFilters = false;
   late AppLocalizations appLocalizations;
+  String? _selectedPolygonKide;
   @override
   void initState() {
     super.initState();
@@ -60,7 +61,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              context.read<FmbProvider>().refreshData();
+              context.read<FmbProvider>().refreshData('');
             },
           ),
         ],
@@ -230,14 +231,14 @@ class _FmbResultPageState extends State<FmbResultPage> {
               Icon(Icons.tune, color: Colors.green[700], size: 20),
               const SizedBox(width: 8),
               const Text(
-                'Filter Options',
+                'Filter by Crop',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               TextButton.icon(
                 onPressed: provider.clearFilters,
                 icon: const Icon(Icons.clear_all, size: 16),
-                label: const Text('Clear All'),
+                label: const Text('Clear Filter'),
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.grey[600],
                 ),
@@ -245,45 +246,81 @@ class _FmbResultPageState extends State<FmbResultPage> {
             ],
           ),
           const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
+
+          // Single Crop Dropdown
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDropdownCard(
-                  'Kharif Crop',
-                  provider.selectedKharifCrop ?? 'All',
-                  provider.availableKharifCrops,
-                  (value) {
-                    provider.setKharifCropFilter(value == 'All' ? null : value);
-                  },
-                  Icons.grass,
-                  Colors.green,
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.eco, size: 16, color: Colors.green[700]),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Crop Name',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 12),
-                _buildDropdownCard(
-                  'Rabi Crop',
-                  provider.selectedRabiCrop ?? 'All',
-                  provider.availableRabiCrops,
-                  (value) {
-                    provider.setRabiCropFilter(value == 'All' ? null : value);
-                  },
-                  Icons.eco,
-                  Colors.orange,
-                ),
-                const SizedBox(width: 12),
-                _buildDropdownCard(
-                  'Land Type',
-                  provider.selectedLandType ?? 'All',
-                  provider.availableLandTypes,
-                  (value) =>
-                      provider.setLandTypeFilter(value == 'All' ? null : value),
-                  Icons.terrain,
-                  Colors.brown,
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: provider.selectedCrop ?? 'All',
+                      isExpanded: true,
+                      isDense: true,
+                      hint: const Text('Select a crop to filter'),
+                      items: provider.availableCrops.map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            value,
+                            style: const TextStyle(fontSize: 14),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? value) {
+                        provider.setCropFilter(value == 'All' ? null : value);
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
+
           const SizedBox(height: 12),
+
+          // Info container
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
@@ -295,93 +332,17 @@ class _FmbResultPageState extends State<FmbResultPage> {
               children: [
                 Icon(Icons.info_outline, size: 16, color: Colors.green[700]),
                 const SizedBox(width: 8),
-                Text(
-                  'Showing ${provider.filteredResults.length} of ${provider.fmbResults.length} land parcels',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.green[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDropdownCard(
-    String label,
-    String selectedValue,
-    List<String> options,
-    Function(String?) onChanged,
-    IconData icon,
-    MaterialColor color,
-  ) {
-    return Container(
-      width: 160,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color[50],
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, size: 16, color: color[700]),
-                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    label,
+                    'Showing ${provider.filteredResults.length} of ${provider.fmbResults.length} land parcels',
                     style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: color[700],
+                      fontSize: 14,
+                      color: Colors.green[700],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: selectedValue,
-                isExpanded: true,
-                isDense: true,
-                items: options.map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(
-                      value,
-                      style: const TextStyle(fontSize: 13),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                }).toList(),
-                onChanged: onChanged,
-              ),
             ),
           ),
         ],
@@ -507,7 +468,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
             maxZoom: 19,
           ),
           PolygonLayer(
-            polygons: _buildPolygons(provider.filteredResults),
+            polygons: _buildPolygons(provider.filteredResults, provider),
           ),
         ],
       ),
@@ -543,7 +504,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
     );
   }
 
-  List<Polygon> _buildPolygons(List<FmbResult> results) {
+  List<Polygon> _buildPolygons(List<FmbResult> results, FmbProvider provider) {
     List<Polygon> polygons = [];
 
     for (final result in results) {
@@ -553,8 +514,11 @@ class _FmbResultPageState extends State<FmbResultPage> {
           polygons.add(
             Polygon(
               points: points,
-              color: _getPolygonColor(result).withOpacity(0.4),
-              borderColor: _getPolygonColor(result),
+              color: _getPolygonColor(
+                      result.rabiCropName ?? result.kharifCropName ?? "paddy")
+                  .withOpacity(0.4),
+              borderColor: _getPolygonColor(
+                  result.rabiCropName ?? result.kharifCropName ?? "paddy"),
               borderStrokeWidth: 2,
               label: result.kide,
               hitValue: result,
@@ -662,18 +626,20 @@ class _FmbResultPageState extends State<FmbResultPage> {
     return inside;
   }
 
-  Color _getPolygonColor(FmbResult result) {
-    switch (result.tamilnilamLandType?.toLowerCase()) {
-      case 'dry':
-        return Colors.orange;
-      case 'poramboke':
-        return Colors.red;
-      case 'wet':
+  Color _getPolygonColor(String cropName) {
+    switch (cropName.toLowerCase()) {
+      case 'coconut':
         return Colors.blue;
-      case 'garden':
+      case 'paddy':
         return Colors.green;
+      case 'maize':
+        return Colors.yellow;
+      case 'non crop':
+        return Colors.lightBlue;
+      case 'all': // optional, probably won't be per-polygon
+        return Colors.teal;
       default:
-        return Colors.purple;
+        return Colors.purple; // fallback
     }
   }
 

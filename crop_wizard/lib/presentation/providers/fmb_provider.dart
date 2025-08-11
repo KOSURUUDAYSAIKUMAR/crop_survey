@@ -1,206 +1,291 @@
-// lib/presentation/provider/fmb_provider_enhanced.dart
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../domain/entities/fmb_result.dart';
 import '../../domain/usecases/fmb_data.dart';
 
 class FmbProvider extends ChangeNotifier {
   final FmbDataUseCase fmbDataUseCase;
+  late Box<String> _fmbBox;
+  bool _isHiveInitialized = false;
 
-  FmbProvider({required this.fmbDataUseCase});
-
+  // State variables
   List<FmbResult> _fmbResults = [];
   List<FmbResult> _filteredResults = [];
   bool _isLoading = false;
   String? _error;
-
-  // Filter states
-  String? _selectedKharifCrop;
-  String? _selectedRabiCrop;
-  String? _selectedLandType;
-
-  List<String> _availableKharifCrops = [];
-  List<String> _availableRabiCrops = [];
-  List<String> _availableLandTypes = [];
+  String? _selectedCrop;
 
   // Getters
   List<FmbResult> get fmbResults => _fmbResults;
   List<FmbResult> get filteredResults => _filteredResults;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  String? get selectedKharifCrop => _selectedKharifCrop;
-  String? get selectedRabiCrop => _selectedRabiCrop;
-  String? get selectedLandType => _selectedLandType;
-  List<String> get availableKharifCrops => _availableKharifCrops;
-  List<String> get availableRabiCrops => _availableRabiCrops;
-  List<String> get availableLandTypes => _availableLandTypes;
+  String? get selectedCrop => _selectedCrop;
+
+  // Available options for filtering
+  List<String> get availableCrops {
+    Set<String> crops = {'All'};
+    crops.addAll(fmbDataUseCase.getUniqueKharifCrops(_fmbResults));
+    crops.addAll(fmbDataUseCase.getUniqueRabiCrops(_fmbResults));
+    crops.remove(''); // Remove empty strings
+    return crops.toList()..sort();
+  }
+
+  FmbProvider({required this.fmbDataUseCase}) {
+    _initializeHive();
+  }
+
+  Future<void> _initializeHive() async {
+    try {
+      if (!_isHiveInitialized) {
+        await Hive.initFlutter();
+        _fmbBox = await Hive.openBox<String>('fmb_data');
+        _isHiveInitialized = true;
+        print('Hive initialized successfully');
+      }
+    } catch (e) {
+      print('Error initializing Hive: $e');
+      _error = 'Failed to initialize local storage: $e';
+      notifyListeners();
+    }
+  }
 
   Future<void> loadFmbData(String url) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
     try {
-      print('Starting to load FMB data from: $url');
+      await _initializeHive();
 
-      _fmbResults = await fmbDataUseCase.getFmbDataWithFilters(url: url);
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      print('Loading FMB data from: $url');
+
+      // Try to load from local storage first
+      final cachedData = await _loadFromLocalStorage(url);
+      if (cachedData != null && cachedData.isNotEmpty) {
+        print('Loading data from local storage');
+        _fmbResults = cachedData;
+        _filteredResults = List.from(_fmbResults);
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      // If no cached data, fetch from API
+      print('No cached data found, fetching from API');
+      final result = await fmbDataUseCase.getFmbDataWithFilters(url: url);
+
+      print('FMB data loaded successfully: ${result.length} results');
+      _fmbResults = result;
       _filteredResults = List.from(_fmbResults);
 
-      print('Successfully loaded ${_fmbResults.length} FMB results');
-
-      // Update available filter options safely
-      _updateFilterOptions();
+      // Save to local storage
+      await _saveToLocalStorage(url, result);
+      await _saveAsGeoJSON(result);
 
       _isLoading = false;
       notifyListeners();
     } catch (e) {
       print('Error in loadFmbData: $e');
-      _error = _getUserFriendlyError(e.toString());
+      _error = 'Failed to load FMB data: $e';
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  void _updateFilterOptions() {
+  Future<void> _saveToLocalStorage(String url, List<FmbResult> data) async {
     try {
-      // Get unique crops and land types
-      Set<String> kharifCrops = {};
-      Set<String> rabiCrops = {};
-      Set<String> landTypes = {};
+      if (!_isHiveInitialized) return;
 
-      for (final result in _fmbResults) {
-        if (result.kharifCropName != null &&
-            result.kharifCropName!.isNotEmpty) {
-          kharifCrops.add(result.kharifCropName!);
-        }
-        if (result.rabiCropName != null && result.rabiCropName!.isNotEmpty) {
-          rabiCrops.add(result.rabiCropName!);
-        }
-        if (result.tamilnilamLandType != null &&
-            result.tamilnilamLandType!.isNotEmpty) {
-          landTypes.add(result.tamilnilamLandType!);
-        }
-      }
-
-      _availableKharifCrops = ['All', ...kharifCrops.toList()..sort()];
-      _availableRabiCrops = ['All', ...rabiCrops.toList()..sort()];
-      _availableLandTypes = ['All', ...landTypes.toList()..sort()];
-
-      print('Filter options updated:');
-      print('Kharif crops: $_availableKharifCrops');
-      print('Rabi crops: $_availableRabiCrops');
-      print('Land types: $_availableLandTypes');
+      final jsonString =
+          jsonEncode(data.map((result) => result.toJson()).toList());
+      await _fmbBox.put('fmb_data_$url', jsonString);
+      await _fmbBox.put('last_updated', DateTime.now().toIso8601String());
+      print('Data saved to local storage: ${data.length} items');
     } catch (e) {
-      print('Error updating filter options: $e');
-      // Set default values if error occurs
-      _availableKharifCrops = ['All'];
-      _availableRabiCrops = ['All'];
-      _availableLandTypes = ['All'];
+      print('Error saving to local storage: $e');
     }
   }
 
-  String _getUserFriendlyError(String errorMessage) {
-    if (errorMessage.contains('type \'double\' is not a subtype')) {
-      return 'Data format error: The server data contains mixed number formats. Please contact support.';
-    } else if (errorMessage.contains('Connection timeout')) {
-      return 'Connection timeout. Please check your internet connection and try again.';
-    } else if (errorMessage.contains('Network error')) {
-      return 'Network error. Please check your internet connection.';
-    } else if (errorMessage.contains('Server error')) {
-      return 'Server is temporarily unavailable. Please try again later.';
-    } else if (errorMessage.contains('Failed to load FMB data')) {
-      return 'Unable to load land survey data. Please try again.';
-    } else {
-      return 'An unexpected error occurred. Please try again later.';
+  Future<List<FmbResult>?> _loadFromLocalStorage(String url) async {
+    try {
+      if (!_isHiveInitialized) return null;
+
+      final jsonString = _fmbBox.get('fmb_data_$url');
+      if (jsonString != null) {
+        final List<dynamic> jsonList = jsonDecode(jsonString);
+        final results =
+            jsonList.map((json) => FmbResult.fromJson(json)).toList();
+        print('Loaded from local storage: ${results.length} items');
+        return results;
+      }
+    } catch (e) {
+      print('Error loading from local storage: $e');
+    }
+    return null;
+  }
+
+  Future<void> _saveAsGeoJSON(List<FmbResult> data) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/fmb_data.geojson');
+
+      final geoJson = {
+        "type": "FeatureCollection",
+        "features": data
+            .map((result) => {
+                  "type": "Feature",
+                  "properties": result.toJson(),
+                  "geometry": {
+                    "type": "Polygon",
+                    "coordinates": result.coordinates
+                  }
+                })
+            .toList()
+      };
+
+      await file.writeAsString(jsonEncode(geoJson));
+      print('GeoJSON saved to: ${file.path}');
+    } catch (e) {
+      print('Error saving GeoJSON: $e');
     }
   }
 
-  void setKharifCropFilter(String? crop) {
-    _selectedKharifCrop = crop;
-    if (crop != null && crop != 'All') {
-      _selectedRabiCrop = null;
+  Future<void> updateCropForPolygon(String kide, String newCrop) async {
+    try {
+      print('Updating crop for KIDE: $kide to: $newCrop');
+
+      // Find the polygon by KIDE
+      final index = _fmbResults.indexWhere((result) => result.kide == kide);
+      if (index != -1) {
+        // Create updated result with new crop
+        final oldResult = _fmbResults[index];
+        final updatedResult = FmbResult(
+          kide: oldResult.kide,
+          area: oldResult.area,
+          surveyNumber: oldResult.surveyNumber,
+          subdivisionNumber: oldResult.subdivisionNumber,
+          uniqueId1: oldResult.uniqueId1,
+          uniqueId2: oldResult.uniqueId2,
+          reginetGuidelineValue: oldResult.reginetGuidelineValue,
+          reginetLandClassification: oldResult.reginetLandClassification,
+          tamilnilamPattaNumber: oldResult.tamilnilamPattaNumber,
+          tamilnilamGovernmentPriority: oldResult.tamilnilamGovernmentPriority,
+          tamilnilamExtentAres: oldResult.tamilnilamExtentAres,
+          tamilnilamLandType: oldResult.tamilnilamLandType,
+          tamilnilamOwnerDetails: oldResult.tamilnilamOwnerDetails,
+          kharifCropClassification: oldResult.kharifCropClassification,
+          kharifCropName: newCrop,
+          kharifArea: oldResult.kharifArea,
+          rabiCropClassification: oldResult.rabiCropClassification,
+          rabiCropName: newCrop,
+          rabiArea: oldResult.rabiArea,
+          baseUid: oldResult.baseUid,
+          parkName: oldResult.parkName,
+          coordinates: oldResult.coordinates,
+          geometryType: oldResult.geometryType,
+        );
+
+        // Update in memory
+        _fmbResults[index] = updatedResult;
+        _applyFilters();
+
+        // Update in local storage
+        await _updateLocalStorage();
+        await _saveAsGeoJSON(_fmbResults);
+
+        notifyListeners();
+        print('Crop updated successfully for KIDE: $kide');
+      } else {
+        print('No polygon found with KIDE: $kide');
+      }
+    } catch (e) {
+      print('Error updating crop for polygon: $e');
+      _error = 'Failed to update crop: $e';
+      notifyListeners();
     }
+  }
+
+  Future<void> _updateLocalStorage() async {
+    try {
+      if (!_isHiveInitialized) return;
+
+      // Get the original URL key (you might want to store this)
+      final keys = _fmbBox.keys
+          .where((key) => key.toString().startsWith('fmb_data_'))
+          .toList();
+      if (keys.isNotEmpty) {
+        final jsonString =
+            jsonEncode(_fmbResults.map((result) => result.toJson()).toList());
+        await _fmbBox.put(keys.first, jsonString);
+        await _fmbBox.put('last_updated', DateTime.now().toIso8601String());
+        print('Local storage updated with new crop data');
+      }
+    } catch (e) {
+      print('Error updating local storage: $e');
+    }
+  }
+
+  void setCropFilter(String? crop) {
+    _selectedCrop = crop;
     _applyFilters();
-    notifyListeners();
-  }
-
-  void setRabiCropFilter(String? crop) {
-    _selectedRabiCrop = crop;
-    if (crop != null && crop != 'All') {
-      _selectedKharifCrop = null;
-    }
-    _applyFilters();
-    notifyListeners();
-  }
-
-  void setLandTypeFilter(String? landType) {
-    _selectedLandType = landType;
-    _applyFilters();
-    notifyListeners();
-  }
-
-  void clearFilters() {
-    _selectedKharifCrop = null;
-    _selectedRabiCrop = null;
-    _selectedLandType = null;
-    _filteredResults = List.from(_fmbResults);
     notifyListeners();
   }
 
   void _applyFilters() {
-    try {
-      _filteredResults = _fmbResults.where((result) {
-        bool kharifMatch = _selectedKharifCrop == null ||
-            _selectedKharifCrop == 'All' ||
-            result.kharifCropName == _selectedKharifCrop;
-
-        bool rabiMatch = _selectedRabiCrop == null ||
-            _selectedRabiCrop == 'All' ||
-            result.rabiCropName == _selectedRabiCrop;
-
-        bool landTypeMatch = _selectedLandType == null ||
-            _selectedLandType == 'All' ||
-            result.tamilnilamLandType == _selectedLandType;
-
-        return kharifMatch && rabiMatch && landTypeMatch;
-      }).toList();
-
-      print(
-          'Applied filters: ${_filteredResults.length} results out of ${_fmbResults.length}');
-    } catch (e) {
-      print('Error applying filters: $e');
-      // If filter fails, show all results
-      _filteredResults = List.from(_fmbResults);
-    }
-  }
-
-  void refreshData() {
-    if (_fmbResults.isNotEmpty) {
-      const defaultUrl =
-          'https://main.d35889sospji4x.amplifyapp.com/sipcot/data/villages/site_1_kangeyam/fmb.geojson';
-      loadFmbData(defaultUrl);
-    }
-  }
-
-  // Method to get statistics
-  Map<String, int> getDataStatistics() {
-    final stats = <String, int>{};
-
-    try {
-      stats['Total Parcels'] = _fmbResults.length;
-      stats['Filtered Parcels'] = _filteredResults.length;
-
-      // Count by land type
-      final landTypeCounts = <String, int>{};
-      for (final result in _filteredResults) {
-        final landType = result.tamilnilamLandType ?? 'Unknown';
-        landTypeCounts[landType] = (landTypeCounts[landType] ?? 0) + 1;
+    _filteredResults = _fmbResults.where((result) {
+      // Crop filter
+      if (_selectedCrop != null && _selectedCrop != 'All') {
+        final hasKharifMatch = result.kharifCropName == _selectedCrop;
+        final hasRabiMatch = result.rabiCropName == _selectedCrop;
+        if (!hasKharifMatch && !hasRabiMatch) {
+          return false;
+        }
       }
+      return true;
+    }).toList();
 
-      stats.addAll(landTypeCounts);
+    print(
+        'Applied filters. Showing ${_filteredResults.length} of ${_fmbResults.length} results');
+  }
+
+  void clearFilters() {
+    _selectedCrop = null;
+    _filteredResults = List.from(_fmbResults);
+    notifyListeners();
+  }
+
+  Future<void> refreshData(String url) async {
+    await _clearLocalCache(url);
+    await loadFmbData(url);
+  }
+
+  Future<void> _clearLocalCache(String url) async {
+    try {
+      if (!_isHiveInitialized) return;
+      await _fmbBox.delete('fmb_data_$url');
+      print('Local cache cleared for $url');
     } catch (e) {
-      print('Error calculating statistics: $e');
+      print('Error clearing local cache: $e');
     }
+  }
 
-    return stats;
+  FmbResult? findPolygonByKide(String kide) {
+    try {
+      return _fmbResults.firstWhere((result) => result.kide == kide);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_isHiveInitialized) {
+      _fmbBox.close();
+    }
+    super.dispose();
   }
 }
