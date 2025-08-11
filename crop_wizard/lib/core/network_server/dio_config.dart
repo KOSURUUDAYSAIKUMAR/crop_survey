@@ -5,9 +5,25 @@ class DioConfig {
   static Dio createDio() {
     final dio = Dio();
 
-    // Configure timeout
-    dio.options.connectTimeout = const Duration(seconds: 15);
+    // Configure timeout - increased for better reliability
+    dio.options.connectTimeout =
+        const Duration(seconds: 30); // Increased from 15 to 30
     dio.options.receiveTimeout = const Duration(seconds: 60);
+    dio.options.sendTimeout = const Duration(seconds: 30); // Added send timeout
+
+    // Add retry interceptor for better reliability
+    dio.interceptors.add(
+      RetryInterceptor(
+        dio: dio,
+        logPrint: print,
+        retries: 3,
+        retryDelays: const [
+          Duration(seconds: 1),
+          Duration(seconds: 2),
+          Duration(seconds: 4),
+        ],
+      ),
+    );
 
     // Add interceptor for logging and error handling
     dio.interceptors.add(
@@ -52,5 +68,52 @@ class DioConfig {
     );
 
     return dio;
+  }
+}
+
+// Retry interceptor for better network reliability
+class RetryInterceptor extends Interceptor {
+  final Dio dio;
+  final Function(String) logPrint;
+  final int retries;
+  final List<Duration> retryDelays;
+
+  RetryInterceptor({
+    required this.dio,
+    required this.logPrint,
+    this.retries = 3,
+    this.retryDelays = const [
+      Duration(seconds: 1),
+      Duration(seconds: 2),
+      Duration(seconds: 4),
+    ],
+  });
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    var extra = err.requestOptions.extra;
+    var retryCount = extra['retryCount'] ?? 0;
+
+    if (_shouldRetry(err) && retryCount < retries) {
+      extra['retryCount'] = retryCount + 1;
+      logPrint('Retrying request (${retryCount + 1}/$retries)');
+
+      try {
+        await Future.delayed(retryDelays[retryCount]);
+        final response = await dio.fetch(err.requestOptions);
+        handler.resolve(response);
+        return;
+      } catch (e) {
+        logPrint('Retry failed: $e');
+      }
+    }
+
+    handler.next(err);
+  }
+
+  bool _shouldRetry(DioException err) {
+    return err.type == DioExceptionType.connectionTimeout ||
+        err.type == DioExceptionType.receiveTimeout ||
+        err.type == DioExceptionType.unknown;
   }
 }

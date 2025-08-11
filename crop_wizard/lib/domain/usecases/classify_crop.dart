@@ -7,7 +7,7 @@ class ClassifyCrop {
 
   ClassifyCrop(this.repository);
 
-  Future<CropClassificationResult> call(File imageFile) async {
+  Future<List<CropClassificationResult>> call(File imageFile) async {
     return await repository.classifyCropImage(imageFile);
   }
-} 
+}

@@ -16,13 +16,21 @@ class FmbLayerDataSourceImpl implements FmbLayerDataSource {
     try {
       print('Fetching FMB data from: $url');
 
+      // Test connection first
+      await _testConnection(url);
+
       final response = await dio.get(
         url,
         options: Options(
           responseType: ResponseType.json,
           headers: {
-            'Accept': 'application/json',
+            'Accept': 'application/json, text/plain, */*',
             'Content-Type': 'application/json',
+            'User-Agent': 'CropWizard/1.0 (Flutter)',
+            'Cache-Control': 'no-cache',
+          },
+          validateStatus: (status) {
+            return status != null && status < 500;
           },
         ),
       );
@@ -83,6 +91,22 @@ class FmbLayerDataSourceImpl implements FmbLayerDataSource {
     } catch (e) {
       print('General error fetching FMB data: $e');
       throw Exception('Error processing FMB data: ${e.toString()}');
+    }
+  }
+
+  // Test connection before making the actual request
+  Future<void> _testConnection(String url) async {
+    try {
+      final testDio = Dio();
+      testDio.options.connectTimeout = const Duration(seconds: 5);
+      testDio.options.receiveTimeout = const Duration(seconds: 5);
+
+      // Try a HEAD request first to test connectivity
+      await testDio.head(url);
+      print('Connection test successful');
+    } catch (e) {
+      print('Connection test failed: $e');
+      // Don't throw here, let the main request handle it
     }
   }
 }

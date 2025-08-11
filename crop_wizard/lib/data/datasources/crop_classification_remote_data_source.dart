@@ -5,7 +5,7 @@ import 'package:crop_wizard/data/models/crop_classification_response_model.dart'
 import 'package:dio/dio.dart';
 
 abstract class CropClassificationRemoteDataSource {
-  Future<CropClassificationResponseModel> classifyCrop(CropClassificationRequestModel requestModel);
+  Future<List<CropClassificationResponseModel>> classifyCrop(CropClassificationRequestModel requestModel);
 }
 
 class CropClassificationRemoteDataSourceImpl implements CropClassificationRemoteDataSource {
@@ -38,7 +38,7 @@ class CropClassificationRemoteDataSourceImpl implements CropClassificationRemote
   }
 
   @override
-  Future<CropClassificationResponseModel> classifyCrop(CropClassificationRequestModel requestModel) async {
+  Future<List<CropClassificationResponseModel>> classifyCrop(CropClassificationRequestModel requestModel) async {
     await _testNetworkConnectivity();
     print('(Dio) Proceeding with Crop Classification API call to: $_endpoint');
 
@@ -56,7 +56,12 @@ class CropClassificationRemoteDataSourceImpl implements CropClassificationRemote
       print('(Dio) Crop Classification API Response Body: ${response.data}');
 
       if (response.statusCode == 200 && response.data != null) {
-        return CropClassificationResponseModel.fromJson(response.data as Map<String, dynamic>);
+        if (response.data is List) {
+          return CropClassificationResponseModel.fromJsonList(response.data as List<dynamic>);
+        } else {
+          // For backward compatibility, handle single object response
+          return [CropClassificationResponseModel.fromJson(response.data as Map<String, dynamic>)];
+        }
       } else {
         throw Exception('Failed to classify crop. Status: ${response.statusCode}, Body: ${response.data}');
       }

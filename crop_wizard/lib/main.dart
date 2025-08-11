@@ -25,7 +25,17 @@ void main() {
   // HTTP Clients
   final httpClient = http.Client(); // For services still using http package
   final dioClient = Dio(); // For services using Dio
-  final dio_fmb = DioConfig.createDio();
+
+  // Create FMB Dio with enhanced configuration
+  final dioFmb = DioConfig.createDio();
+
+  // Add network debugging
+  print('Initializing Crop Wizard with enhanced network configuration...');
+  print('FMB Dio configured with:');
+  print('- Connect timeout: ${dioFmb.options.connectTimeout}');
+  print('- Receive timeout: ${dioFmb.options.receiveTimeout}');
+  print('- Send timeout: ${dioFmb.options.sendTimeout}');
+
   // Crop Classification Dependencies (using Dio)
   final cropClassificationRemoteDataSource =
       CropClassificationRemoteDataSourceImpl(dioClient);
@@ -41,9 +51,12 @@ void main() {
   final detectPestUseCase = DetectPest(pestDetectionRepository);
 
 // FMB Dependencies (Using Dio)
-  final dataSource = FmbLayerDataSourceImpl(dio: dio_fmb);
+  final dataSource = FmbLayerDataSourceImpl(dio: dioFmb);
   final repository = FmbRepositoryImplementation(dataSource: dataSource);
   final fmbDataUseCase = FmbDataUseCase(repository: repository);
+
+  print('All dependencies initialized successfully');
+
   runApp(MyApp(
     classifyCropUseCase: classifyCropUseCase,
     detectPestUseCase: detectPestUseCase,

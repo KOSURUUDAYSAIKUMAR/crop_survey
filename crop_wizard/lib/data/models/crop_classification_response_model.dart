@@ -10,11 +10,19 @@ class CropClassificationResponseModel extends CropClassificationResult {
 
   factory CropClassificationResponseModel.fromJson(Map<String, dynamic> json) {
     return CropClassificationResponseModel(
-      crop: json['crop'] as String? ?? 'N/A',
-      confidenceScore: json['confidence_score'] as String? ?? 'N/A',
-      stageOfGrowth: json['stage_of_growth'] as String? ?? 'N/A',
-      description: json['description'] as String? ?? 'N/A',
+      crop: json['crop']?.toString() ?? 'N/A',
+      confidenceScore: json['confidence_score']?.toString() ?? 'N/A',
+      stageOfGrowth: json['stage_of_growth']?.toString() ?? 'N/A',
+      description: json['description']?.toString() ?? 'N/A',
     );
+  }
+
+  static List<CropClassificationResponseModel> fromJsonList(
+      List<dynamic> jsonList) {
+    return jsonList
+        .map((item) => CropClassificationResponseModel.fromJson(
+            item as Map<String, dynamic>))
+        .toList();
   }
 
   Map<String, dynamic> toJson() {

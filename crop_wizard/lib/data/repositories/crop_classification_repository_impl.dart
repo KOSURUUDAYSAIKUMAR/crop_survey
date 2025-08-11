@@ -32,7 +32,7 @@ class CropClassificationRepositoryImpl implements CropClassificationRepository {
   }
 
   @override
-  Future<CropClassificationResult> classifyCropImage(File imageFile) async {
+  Future<List<CropClassificationResult>> classifyCropImage(File imageFile) async {
     try {
       // Compress the image
       final Uint8List? compressedBytes = await _compressImage(imageFile);
@@ -44,10 +44,10 @@ class CropClassificationRepositoryImpl implements CropClassificationRepository {
       final String base64Image = base64Encode(compressedBytes);
 
       final requestModel = CropClassificationRequestModel(baseImage: base64Image);
-      final responseModel = await remoteDataSource.classifyCrop(requestModel);
+      final responseModels = await remoteDataSource.classifyCrop(requestModel);
       
-      // The responseModel is already a CropClassificationResult due to inheritance
-      return responseModel;
+      // Convert list of response models to list of base results
+      return responseModels.map((model) => model as CropClassificationResult).toList();
     } catch (e) {
       // Handle or rethrow the exception as per your app's error handling strategy
       print('Error in CropClassificationRepositoryImpl: $e');

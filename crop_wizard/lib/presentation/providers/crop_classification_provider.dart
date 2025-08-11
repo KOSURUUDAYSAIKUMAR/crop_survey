@@ -13,8 +13,9 @@ class CropClassificationProvider with ChangeNotifier {
   CropClassificationState _state = CropClassificationState.initial;
   CropClassificationState get state => _state;
 
-  CropClassificationResult? _result;
-  CropClassificationResult? get result => _result;
+  List<CropClassificationResult> _results = [];
+  List<CropClassificationResult> get results => _results;
+  CropClassificationResult? get firstResult => _results.isNotEmpty ? _results.first : null;
 
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
@@ -25,10 +26,15 @@ class CropClassificationProvider with ChangeNotifier {
   Future<void> classify(File imageFile) async {
     _currentImage = imageFile;
     _state = CropClassificationState.loading;
+    _results = [];
+    _errorMessage = null;
     notifyListeners();
 
     try {
-      _result = await _classifyCrop(imageFile);
+      _results = await _classifyCrop(imageFile);
+      if (_results.isEmpty) {
+        throw Exception('No crop classification results found');
+      }
       _state = CropClassificationState.success;
     } catch (e) {
       _errorMessage = e.toString();
@@ -38,11 +44,11 @@ class CropClassificationProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void resetState(){
+  void resetState() {
     _state = CropClassificationState.initial;
-    _result = null;
+    _results = [];
     _errorMessage = null;
     _currentImage = null;
     notifyListeners();
   }
-} 
+}
