@@ -43,7 +43,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('FMB Map Viewer'),
+        title: const Text('Crop viewer'),
         backgroundColor: Colors.green[700],
         foregroundColor: Colors.white,
         elevation: 0,
@@ -403,7 +403,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
           const SizedBox(width: 8),
           const Expanded(
             child: Text(
-              'Tap any polygon to view detailed property information',
+              'Tap any land parcel to view detailed information',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
@@ -418,7 +418,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
-              '${provider.filteredResults.length} plots',
+              '${provider.filteredResults.length} land parcels',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 12,
@@ -556,9 +556,8 @@ class _FmbResultPageState extends State<FmbResultPage> {
               color: _getPolygonColor(result).withOpacity(0.4),
               borderColor: _getPolygonColor(result),
               borderStrokeWidth: 2,
-              label: result.surveyNumber?.toString(),
-              hitValue:
-                  result, // This is the key - store the FmbResult as hitValue
+              label: result.kide,
+              hitValue: result,
             ),
           );
         }
@@ -798,18 +797,18 @@ class _FmbResultPageState extends State<FmbResultPage> {
 
                         const SizedBox(height: 12),
 
-                        // Owner Information
-                        _buildInfoCard(
-                          context,
-                          title: 'Owner Information',
-                          icon: Icons.person_outline,
-                          color: Colors.orange,
-                          items: {
-                            'Patta No.': properties['Patta Number'],
-                            'Priority': properties['Government Priority'],
-                            'Owner': properties['Owner Details'],
-                          },
-                        ),
+                        // // Owner Information
+                        // _buildInfoCard(
+                        //   context,
+                        //   title: 'Owner Information',
+                        //   icon: Icons.person_outline,
+                        //   color: Colors.orange,
+                        //   items: {
+                        //     'Patta No.': properties['Patta Number'],
+                        //     'Priority': properties['Government Priority'],
+                        //     'Owner': properties['Owner Details'],
+                        //   },
+                        // ),
 
                         const SizedBox(height: 12),
 
