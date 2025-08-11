@@ -899,14 +899,20 @@
 // }
 
 // lib/presentation/features/fmb_result_page.dart
+import 'dart:io';
 import 'package:crop_wizard/domain/entities/fmb_result.dart';
 import 'package:crop_wizard/presentation/providers/fmb_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-
+import '../../../l10n/app_localizations.dart';
+import '../../providers/crop_classification_provider.dart';
+import '../../providers/pest_detection_provider.dart';
+import '../crop_classification/crop_classification_result_page.dart';
 import '../home/home_page.dart';
+import '../pest_detection/pest_detection_result_page.dart';
 
 class FmbResultPage extends StatefulWidget {
   const FmbResultPage({super.key});
@@ -1575,6 +1581,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
 
   void _showPropertyDialog(FmbResult result) {
     final properties = result.toDisplayMap();
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1674,6 +1681,44 @@ class _FmbResultPageState extends State<FmbResultPage> {
                         'Rabi Area': properties['Rabi Area'],
                       },
                       Colors.brown),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close dialog
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HomePage(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[700],
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Go to Home'),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close dialog
+                      _showImageSourceActionSheet(context,
+                          AppLocalizations.of(context)!.cropClassification);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange[700],
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Start Crop Classification'),
+                  ),
                 ],
               ),
             ),
@@ -1754,5 +1799,79 @@ class _FmbResultPageState extends State<FmbResultPage> {
         ),
       ],
     );
+  }
+
+  void _showImageSourceActionSheet(BuildContext context, String featureType) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext ctx) {
+        final appLocalizations = AppLocalizations.of(context)!;
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: Text(appLocalizations.takePhoto),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _pickImageAndNavigate(
+                      context, ImageSource.camera, featureType);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: Text(appLocalizations.uploadFromGallery),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _pickImageAndNavigate(
+                      context, ImageSource.gallery, featureType);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImageAndNavigate(
+      BuildContext context, ImageSource source, String featureType) async {
+    final pickedFile = await ImagePicker().pickImage(source: source);
+
+    if (pickedFile != null) {
+      final imageFile = File(pickedFile.path);
+      print('$featureType - Image selected: ${imageFile.path}');
+      // ignore: use_build_context_synchronously
+      final appLocalizations = AppLocalizations.of(context)!;
+
+      if (featureType == appLocalizations.cropClassification) {
+        // ignore: use_build_context_synchronously
+        Provider.of<CropClassificationProvider>(context, listen: false)
+            .resetState();
+        // ignore: use_build_context_synchronously
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CropClassificationResultPage(imageFile: imageFile),
+          ),
+        );
+      } else if (featureType == appLocalizations.pestDetection) {
+        // ignore: use_build_context_synchronously
+        Provider.of<PestDetectionProvider>(context, listen: false).resetState();
+        // ignore: use_build_context_synchronously
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PestDetectionResultPage(imageFile: imageFile),
+          ),
+        );
+      }
+    } else {
+      print('$featureType - No image selected.');
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.noImageSelected)),
+      );
+    }
   }
 }
