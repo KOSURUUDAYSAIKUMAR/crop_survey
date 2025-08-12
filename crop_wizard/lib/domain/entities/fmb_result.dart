@@ -1,4 +1,3 @@
-// lib/domain/entities/fmb_result.dart
 class FmbResult {
   final String? kide;
   final String? area;
@@ -50,7 +49,7 @@ class FmbResult {
     required this.geometryType,
   });
 
-  /// Converts an [FmbResult] object to a JSON-compatible map.
+  // JSON serialization methods
   Map<String, dynamic> toJson() {
     return {
       'kide': kide,
@@ -79,33 +78,42 @@ class FmbResult {
     };
   }
 
-  /// Creates an [FmbResult] object from a JSON map.
   factory FmbResult.fromJson(Map<String, dynamic> json) {
     return FmbResult(
-      kide: json['kide'] as String?,
-      area: json['area'] as String?,
-      surveyNumber: json['surveyNumber'] as int?,
-      subdivisionNumber: json['subdivisionNumber'] as String?,
-      uniqueId1: json['uniqueId1'] as String?,
-      uniqueId2: json['uniqueId2'] as String?,
-      reginetGuidelineValue: json['reginetGuidelineValue'] as String?,
-      reginetLandClassification: json['reginetLandClassification'] as String?,
-      tamilnilamPattaNumber: json['tamilnilamPattaNumber'] as int?,
+      kide: json['kide']?.toString(),
+      area: json['area']?.toString(),
+      surveyNumber: json['surveyNumber'] is int
+          ? json['surveyNumber']
+          : int.tryParse(json['surveyNumber']?.toString() ?? ''),
+      subdivisionNumber: json['subdivisionNumber']?.toString(),
+      uniqueId1: json['uniqueId1']?.toString(),
+      uniqueId2: json['uniqueId2']?.toString(),
+      reginetGuidelineValue: json['reginetGuidelineValue']?.toString(),
+      reginetLandClassification: json['reginetLandClassification']?.toString(),
+      tamilnilamPattaNumber: json['tamilnilamPattaNumber'] is int
+          ? json['tamilnilamPattaNumber']
+          : int.tryParse(json['tamilnilamPattaNumber']?.toString() ?? ''),
       tamilnilamGovernmentPriority:
-          json['tamilnilamGovernmentPriority'] as String?,
-      tamilnilamExtentAres: json['tamilnilamExtentAres'] as int?,
-      tamilnilamLandType: json['tamilnilamLandType'] as String?,
-      tamilnilamOwnerDetails: json['tamilnilamOwnerDetails'] as String?,
-      kharifCropClassification: json['kharifCropClassification'] as String?,
-      kharifCropName: json['kharifCropName'] as String?,
-      kharifArea: json['kharifArea'] as double?,
-      rabiCropClassification: json['rabiCropClassification'] as String?,
-      rabiCropName: json['rabiCropName'] as String?,
-      rabiArea: json['rabiArea'] as double?,
-      baseUid: json['baseUid'] as String?,
-      parkName: json['parkName'] as String?,
-      coordinates: List<dynamic>.from(json['coordinates']),
-      geometryType: json['geometryType'] as String,
+          json['tamilnilamGovernmentPriority']?.toString(),
+      tamilnilamExtentAres: json['tamilnilamExtentAres'] is int
+          ? json['tamilnilamExtentAres']
+          : int.tryParse(json['tamilnilamExtentAres']?.toString() ?? ''),
+      tamilnilamLandType: json['tamilnilamLandType']?.toString(),
+      tamilnilamOwnerDetails: json['tamilnilamOwnerDetails']?.toString(),
+      kharifCropClassification: json['kharifCropClassification']?.toString(),
+      kharifCropName: json['kharifCropName']?.toString(),
+      kharifArea: json['kharifArea'] is double
+          ? json['kharifArea']
+          : double.tryParse(json['kharifArea']?.toString() ?? ''),
+      rabiCropClassification: json['rabiCropClassification']?.toString(),
+      rabiCropName: json['rabiCropName']?.toString(),
+      rabiArea: json['rabiArea'] is double
+          ? json['rabiArea']
+          : double.tryParse(json['rabiArea']?.toString() ?? ''),
+      baseUid: json['baseUid']?.toString(),
+      parkName: json['parkName']?.toString(),
+      coordinates: json['coordinates'] ?? [],
+      geometryType: json['geometryType']?.toString() ?? 'Polygon',
     );
   }
 
@@ -133,5 +141,75 @@ class FmbResult {
       'Base UID': baseUid ?? 'N/A',
       'Park Name': parkName ?? 'N/A',
     };
+  }
+
+  // Helper method to get the primary crop name for display
+  String get primaryCropName {
+    if (kharifCropName?.isNotEmpty == true) {
+      return kharifCropName!;
+    } else if (rabiCropName?.isNotEmpty == true) {
+      return rabiCropName!;
+    }
+    return 'No Crop';
+  }
+
+  // Copy method for easy updates
+  FmbResult copyWith({
+    String? kide,
+    String? area,
+    int? surveyNumber,
+    String? subdivisionNumber,
+    String? uniqueId1,
+    String? uniqueId2,
+    String? reginetGuidelineValue,
+    String? reginetLandClassification,
+    int? tamilnilamPattaNumber,
+    String? tamilnilamGovernmentPriority,
+    int? tamilnilamExtentAres,
+    String? tamilnilamLandType,
+    String? tamilnilamOwnerDetails,
+    String? kharifCropClassification,
+    String? kharifCropName,
+    double? kharifArea,
+    String? rabiCropClassification,
+    String? rabiCropName,
+    double? rabiArea,
+    String? baseUid,
+    String? parkName,
+    List<dynamic>? coordinates,
+    String? geometryType,
+  }) {
+    return FmbResult(
+      kide: kide ?? this.kide,
+      area: area ?? this.area,
+      surveyNumber: surveyNumber ?? this.surveyNumber,
+      subdivisionNumber: subdivisionNumber ?? this.subdivisionNumber,
+      uniqueId1: uniqueId1 ?? this.uniqueId1,
+      uniqueId2: uniqueId2 ?? this.uniqueId2,
+      reginetGuidelineValue:
+          reginetGuidelineValue ?? this.reginetGuidelineValue,
+      reginetLandClassification:
+          reginetLandClassification ?? this.reginetLandClassification,
+      tamilnilamPattaNumber:
+          tamilnilamPattaNumber ?? this.tamilnilamPattaNumber,
+      tamilnilamGovernmentPriority:
+          tamilnilamGovernmentPriority ?? this.tamilnilamGovernmentPriority,
+      tamilnilamExtentAres: tamilnilamExtentAres ?? this.tamilnilamExtentAres,
+      tamilnilamLandType: tamilnilamLandType ?? this.tamilnilamLandType,
+      tamilnilamOwnerDetails:
+          tamilnilamOwnerDetails ?? this.tamilnilamOwnerDetails,
+      kharifCropClassification:
+          kharifCropClassification ?? this.kharifCropClassification,
+      kharifCropName: kharifCropName ?? this.kharifCropName,
+      kharifArea: kharifArea ?? this.kharifArea,
+      rabiCropClassification:
+          rabiCropClassification ?? this.rabiCropClassification,
+      rabiCropName: rabiCropName ?? this.rabiCropName,
+      rabiArea: rabiArea ?? this.rabiArea,
+      baseUid: baseUid ?? this.baseUid,
+      parkName: parkName ?? this.parkName,
+      coordinates: coordinates ?? this.coordinates,
+      geometryType: geometryType ?? this.geometryType,
+    );
   }
 }

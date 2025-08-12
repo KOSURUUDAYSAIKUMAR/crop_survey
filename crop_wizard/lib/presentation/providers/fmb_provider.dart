@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../domain/entities/fmb_result.dart';
 import '../../domain/usecases/fmb_data.dart';
+import '../../data/models/fmb_request_model.dart';
 
 class FmbProvider extends ChangeNotifier {
   final FmbDataUseCase fmbDataUseCase;
@@ -28,8 +29,14 @@ class FmbProvider extends ChangeNotifier {
   // Available options for filtering
   List<String> get availableCrops {
     Set<String> crops = {'All'};
-    crops.addAll(fmbDataUseCase.getUniqueKharifCrops(_fmbResults));
-    crops.addAll(fmbDataUseCase.getUniqueRabiCrops(_fmbResults));
+    for (final result in _fmbResults) {
+      if (result.kharifCropName?.isNotEmpty == true) {
+        crops.add(result.kharifCropName!);
+      }
+      if (result.rabiCropName?.isNotEmpty == true) {
+        crops.add(result.rabiCropName!);
+      }
+    }
     crops.remove(''); // Remove empty strings
     return crops.toList()..sort();
   }
@@ -76,15 +83,16 @@ class FmbProvider extends ChangeNotifier {
 
       // If no cached data, fetch from API
       print('No cached data found, fetching from API');
-      final result = await fmbDataUseCase.getFmbDataWithFilters(url: url);
+      final request = FmbRequestModel(url: url);
+      final data = await fmbDataUseCase.call(request);
 
-      print('FMB data loaded successfully: ${result.length} results');
-      _fmbResults = result;
+      print('FMB data loaded successfully: ${data.length} results');
+      _fmbResults = data;
       _filteredResults = List.from(_fmbResults);
 
       // Save to local storage
-      await _saveToLocalStorage(url, result);
-      await _saveAsGeoJSON(result);
+      await _saveToLocalStorage(url, data);
+      await _saveAsGeoJSON(data);
 
       _isLoading = false;
       notifyListeners();
@@ -165,9 +173,9 @@ class FmbProvider extends ChangeNotifier {
         final oldResult = _fmbResults[index];
         final updatedResult = FmbResult(
           kide: oldResult.kide,
-          area: oldResult.area,
           surveyNumber: oldResult.surveyNumber,
           subdivisionNumber: oldResult.subdivisionNumber,
+          area: oldResult.area,
           uniqueId1: oldResult.uniqueId1,
           uniqueId2: oldResult.uniqueId2,
           reginetGuidelineValue: oldResult.reginetGuidelineValue,
@@ -178,10 +186,10 @@ class FmbProvider extends ChangeNotifier {
           tamilnilamLandType: oldResult.tamilnilamLandType,
           tamilnilamOwnerDetails: oldResult.tamilnilamOwnerDetails,
           kharifCropClassification: oldResult.kharifCropClassification,
-          kharifCropName: newCrop,
+          kharifCropName: newCrop, // Update the crop
           kharifArea: oldResult.kharifArea,
           rabiCropClassification: oldResult.rabiCropClassification,
-          rabiCropName: newCrop,
+          rabiCropName: oldResult.rabiCropName,
           rabiArea: oldResult.rabiArea,
           baseUid: oldResult.baseUid,
           parkName: oldResult.parkName,
@@ -258,16 +266,20 @@ class FmbProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> refreshData(String url) async {
-    await _clearLocalCache(url);
-    await loadFmbData(url);
+  void refreshData() {
+    // Clear local cache and reload
+    _clearLocalCache();
+    // You'll need to store the original URL to refresh
+    // For now, we'll just reload from local storage
+    _filteredResults = List.from(_fmbResults);
+    notifyListeners();
   }
 
-  Future<void> _clearLocalCache(String url) async {
+  Future<void> _clearLocalCache() async {
     try {
       if (!_isHiveInitialized) return;
-      await _fmbBox.delete('fmb_data_$url');
-      print('Local cache cleared for $url');
+      await _fmbBox.clear();
+      print('Local cache cleared');
     } catch (e) {
       print('Error clearing local cache: $e');
     }
@@ -279,6 +291,19 @@ class FmbProvider extends ChangeNotifier {
     } catch (e) {
       return null;
     }
+  }
+
+  List<String> getAllCropNames() {
+    Set<String> crops = {};
+    for (final result in _fmbResults) {
+      if (result.kharifCropName?.isNotEmpty == true) {
+        crops.add(result.kharifCropName!);
+      }
+      if (result.rabiCropName?.isNotEmpty == true) {
+        crops.add(result.rabiCropName!);
+      }
+    }
+    return crops.toList()..sort();
   }
 
   @override

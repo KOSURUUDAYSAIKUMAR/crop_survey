@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:crop_wizard/presentation/providers/crop_classification_provider.dart';
+import 'package:crop_wizard/presentation/providers/fmb_provider.dart';
 import 'package:crop_wizard/presentation/providers/locale_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -7,11 +8,23 @@ import 'package:crop_wizard/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:crop_wizard/domain/entities/crop_classification_result.dart';
 
-class CropClassificationResultPage extends StatelessWidget {
+class CropClassificationResultPage extends StatefulWidget {
   final File? imageFile; // Image passed from HomePage
+  final String? selectedPolygonKide;
 
-  const CropClassificationResultPage({super.key, this.imageFile});
+  const CropClassificationResultPage({
+    super.key,
+    this.imageFile,
+    this.selectedPolygonKide,
+  });
 
+  @override
+  State<CropClassificationResultPage> createState() =>
+      _CropClassificationResultPageState();
+}
+
+class _CropClassificationResultPageState
+    extends State<CropClassificationResultPage> {
   Future<void> _pickImageAndRetry(
       BuildContext context, ImageSource source) async {
     final picker = ImagePicker();
@@ -77,6 +90,38 @@ class CropClassificationResultPage extends StatelessWidget {
     return sorted;
   }
 
+  Future<void> _updatePolygonCrop(String cropName) async {
+    if (widget.selectedPolygonKide == null) return;
+
+    try {
+      final fmbProvider = Provider.of<FmbProvider>(context, listen: false);
+      await fmbProvider.updateCropForPolygon(
+          widget.selectedPolygonKide!, cropName);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Polygon updated successfully with crop: $cropName'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update polygon: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context)!;
@@ -92,11 +137,11 @@ class CropClassificationResultPage extends StatelessWidget {
       final provider =
           Provider.of<CropClassificationProvider>(context, listen: false);
       if (provider.state == CropClassificationState.initial &&
-          imageFile != null &&
+          widget.imageFile != null &&
           provider.currentImage == null) {
         //Only call if it's a new image or initial state.
-        if (provider.currentImage?.path != imageFile!.path) {
-          provider.classify(imageFile!);
+        if (provider.currentImage?.path != widget.imageFile!.path) {
+          provider.classify(widget.imageFile!);
         }
       }
     });
@@ -126,7 +171,8 @@ class CropClassificationResultPage extends StatelessWidget {
       body: Consumer<CropClassificationProvider>(
         builder: (context, provider, child) {
           final displayImage = provider.currentImage ??
-              imageFile; // Use provider's current image, fallback to initial
+              widget
+                  .imageFile; // Use provider's current image, fallback to initial
 
           if (provider.state == CropClassificationState.loading) {
             return Center(
@@ -187,8 +233,11 @@ class CropClassificationResultPage extends StatelessWidget {
                       height: 250,
                       color: Colors.grey[300],
                       child: Center(
-                          child: Text(appLocalizations.noImageSelected,
-                              textAlign: TextAlign.center)),
+                        child: Text(
+                          appLocalizations.noImageSelected,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     ),
                   const SizedBox(height: 20),
                   // Major Crop Section (highest confidence)
@@ -200,6 +249,21 @@ class CropClassificationResultPage extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                     ),
+                    if (widget.selectedPolygonKide != null)
+                      ElevatedButton.icon(
+                        onPressed: () =>
+                            _updatePolygonCrop(sortedResults.first.crop),
+                        icon: const Icon(Icons.update, size: 16),
+                        label: const Text('Update Polygon'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 8),
                     Card(
                       margin: const EdgeInsets.only(bottom: 16.0),

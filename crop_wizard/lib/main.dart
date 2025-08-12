@@ -12,6 +12,7 @@ import 'package:crop_wizard/presentation/providers/locale_provider.dart';
 import 'package:crop_wizard/presentation/providers/pest_detection_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:crop_wizard/l10n/app_localizations.dart';
 import 'package:http/http.dart' as http;
@@ -21,8 +22,10 @@ import 'data/repositories/fmb_repository_implementation.dart';
 import 'domain/usecases/fmb_data.dart';
 import 'presentation/features/home/home_page.dart'; // We'll create this next
 
-void main() {
-  // HTTP Clients
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  print('Hive initialized successfully');
   final httpClient = http.Client(); // For services still using http package
   final dioClient = Dio(); // For services using Dio
 

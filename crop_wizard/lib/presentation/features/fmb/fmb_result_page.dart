@@ -61,7 +61,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              context.read<FmbProvider>().refreshData('');
+              context.read<FmbProvider>().refreshData();
             },
           ),
         ],
@@ -636,7 +636,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
         return Colors.yellow;
       case 'non crop':
         return Colors.lightBlue;
-      case 'all': // optional, probably won't be per-polygon
+      case 'all':
         return Colors.teal;
       default:
         return Colors.purple; // fallback
@@ -844,6 +844,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
                                     _showImageSourceActionSheet(
                                       context,
                                       appLocalizations.cropClassification,
+                                      properties['KIDE'],
                                     );
                                   },
                                 ),
@@ -938,7 +939,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
                     ],
                   ),
                 );
-              }).toList(),
+              }),
             ],
           ),
         ),
@@ -946,11 +947,11 @@ class _FmbResultPageState extends State<FmbResultPage> {
     );
   }
 
-  void _showImageSourceActionSheet(BuildContext context, String featureType) {
+  void _showImageSourceActionSheet(
+      BuildContext context, String featureType, String selectKide) {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext ctx) {
-        final appLocalizations = AppLocalizations.of(context)!;
         return SafeArea(
           child: Wrap(
             children: <Widget>[
@@ -960,7 +961,11 @@ class _FmbResultPageState extends State<FmbResultPage> {
                 onTap: () {
                   Navigator.of(ctx).pop();
                   _pickImageAndNavigate(
-                      context, ImageSource.camera, featureType);
+                    context,
+                    ImageSource.camera,
+                    featureType,
+                    selectKide,
+                  );
                 },
               ),
               ListTile(
@@ -969,7 +974,11 @@ class _FmbResultPageState extends State<FmbResultPage> {
                 onTap: () {
                   Navigator.of(ctx).pop();
                   _pickImageAndNavigate(
-                      context, ImageSource.gallery, featureType);
+                    context,
+                    ImageSource.gallery,
+                    featureType,
+                    selectKide,
+                  );
                 },
               ),
             ],
@@ -979,8 +988,8 @@ class _FmbResultPageState extends State<FmbResultPage> {
     );
   }
 
-  Future<void> _pickImageAndNavigate(
-      BuildContext context, ImageSource source, String featureType) async {
+  Future<void> _pickImageAndNavigate(BuildContext context, ImageSource source,
+      String featureType, String selectKide) async {
     final pickedFile = await ImagePicker().pickImage(source: source);
     if (!mounted) return;
     if (pickedFile != null) {
@@ -995,7 +1004,10 @@ class _FmbResultPageState extends State<FmbResultPage> {
           // ignore: use_build_context_synchronously
           context,
           MaterialPageRoute(
-            builder: (_) => CropClassificationResultPage(imageFile: imageFile),
+            builder: (_) => CropClassificationResultPage(
+              imageFile: imageFile,
+              selectedPolygonKide: selectKide,
+            ),
           ),
         );
       } else if (featureType == appLocalizations.pestDetection) {
