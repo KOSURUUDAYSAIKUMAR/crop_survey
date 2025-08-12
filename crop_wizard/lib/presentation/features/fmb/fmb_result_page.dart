@@ -467,8 +467,9 @@ class _FmbResultPageState extends State<FmbResultPage> {
       ),
       children: [
         TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.example.fmb_app',
+          urlTemplate:
+              'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          userAgentPackageName: 'com.example.crop_wizard',
           maxZoom: 19,
         ),
         PolygonLayer(

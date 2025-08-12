@@ -189,7 +189,7 @@ class FmbProvider extends ChangeNotifier {
           kharifCropName: newCrop, // Update the crop
           kharifArea: oldResult.kharifArea,
           rabiCropClassification: oldResult.rabiCropClassification,
-          rabiCropName: oldResult.rabiCropName,
+          rabiCropName: newCrop,
           rabiArea: oldResult.rabiArea,
           baseUid: oldResult.baseUid,
           parkName: oldResult.parkName,
