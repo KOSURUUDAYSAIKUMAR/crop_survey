@@ -22,6 +22,8 @@ class FmbResultPage extends StatefulWidget {
 
 class _FmbResultPageState extends State<FmbResultPage> {
   final MapController _mapController = MapController();
+  final GlobalKey _mapContainerKey = GlobalKey();
+
   bool _showFilters = false;
   late AppLocalizations appLocalizations;
   String? _selectedPolygonKide;
@@ -443,35 +445,36 @@ class _FmbResultPageState extends State<FmbResultPage> {
       );
     }
 
-    return GestureDetector(
-      onTapDown: (details) => _handleMapTap(details.localPosition, provider),
-      child: FlutterMap(
-        mapController: _mapController,
-        options: MapOptions(
-          initialCenter: bounds.center,
-          initialZoom: 14,
-          onMapReady: () {
-            if (bounds != null) {
-              _mapController.fitCamera(
-                CameraFit.bounds(
-                  bounds: bounds,
-                  padding: const EdgeInsets.all(20),
-                ),
-              );
-            }
-          },
-        ),
-        children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.example.fmb_app',
-            maxZoom: 19,
-          ),
-          PolygonLayer(
-            polygons: _buildPolygons(provider.filteredResults, provider),
-          ),
-        ],
+    return FlutterMap(
+      key: _mapContainerKey,
+      mapController: _mapController,
+      options: MapOptions(
+        initialCenter: bounds.center,
+        initialZoom: 14,
+        onMapReady: () {
+          if (bounds != null) {
+            _mapController.fitCamera(
+              CameraFit.bounds(
+                bounds: bounds,
+                padding: const EdgeInsets.all(20),
+              ),
+            );
+          }
+        },
+        onTap: (tapPosition, point) {
+          _handleMapTap(point, provider);
+        },
       ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.example.fmb_app',
+          maxZoom: 19,
+        ),
+        PolygonLayer(
+          polygons: _buildPolygons(provider.filteredResults, provider),
+        ),
+      ],
     );
   }
 
@@ -581,11 +584,11 @@ class _FmbResultPageState extends State<FmbResultPage> {
     return LatLng(lat / points.length, lng / points.length);
   }
 
-  void _handleMapTap(Offset localPosition, FmbProvider provider) {
+  void _handleMapTap(LatLng localPosition, FmbProvider provider) {
     // Convert screen coordinates to lat/lng
-    final camera = _mapController.camera;
-    final point = camera.offsetToCrs(localPosition);
-    final tappedLatLng = LatLng(point.latitude, point.longitude);
+    // final camera = _mapController.camera;
+    // final point = camera.offsetToCrs(localPosition);
+    final tappedLatLng = localPosition;
 
     // Find which polygon was tapped
     for (final result in provider.filteredResults) {
