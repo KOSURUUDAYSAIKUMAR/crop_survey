@@ -11,16 +11,20 @@ class PestDetectionResultPage extends StatelessWidget {
 
   const PestDetectionResultPage({super.key, this.imageFile});
 
-  Future<void> _pickImageAndRetry(BuildContext context, ImageSource source) async {
+  Future<void> _pickImageAndRetry(
+      BuildContext context, ImageSource source) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source);
 
     if (pickedFile != null) {
       final newImageFile = File(pickedFile.path);
       // ignore: use_build_context_synchronously
-      Provider.of<PestDetectionProvider>(context, listen: false).detect(newImageFile);
+      Provider.of<PestDetectionProvider>(context, listen: false)
+          .detect(newImageFile);
     } else {
-      // ignore: use_build_context_synchronously
+      if (!context.mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.noImageSelected)),
       );
@@ -31,12 +35,13 @@ class PestDetectionResultPage extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext ctx) {
+        final appLocalizations = AppLocalizations.of(context)!;
         return SafeArea(
           child: Wrap(
             children: <Widget>[
               ListTile(
                 leading: const Icon(Icons.photo_camera),
-                title: Text(AppLocalizations.of(context)!.takePhoto),
+                title: Text(appLocalizations.takePhoto),
                 onTap: () {
                   Navigator.of(ctx).pop();
                   _pickImageAndRetry(context, ImageSource.camera);
@@ -44,7 +49,7 @@ class PestDetectionResultPage extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library),
-                title: Text(AppLocalizations.of(context)!.uploadFromGallery),
+                title: Text(appLocalizations.uploadFromGallery),
                 onTap: () {
                   Navigator.of(ctx).pop();
                   _pickImageAndRetry(context, ImageSource.gallery);
@@ -63,17 +68,25 @@ class PestDetectionResultPage extends StatelessWidget {
     final localeProvider = Provider.of<LocaleProvider>(context);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = Provider.of<PestDetectionProvider>(context, listen: false);
-      if (provider.state == PestDetectionState.initial && imageFile != null && provider.currentImage == null) {
-        if(provider.currentImage?.path != imageFile!.path ){
-            provider.detect(imageFile!);
+      final provider =
+          Provider.of<PestDetectionProvider>(context, listen: false);
+      if (provider.state == PestDetectionState.initial &&
+          imageFile != null &&
+          provider.currentImage == null) {
+        if (provider.currentImage?.path != imageFile!.path) {
+          provider.detect(imageFile!);
         }
       }
     });
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(appLocalizations.pestDetectionResultPageTitle),
+        title: Text(
+          appLocalizations.pestDetectionResultPageTitle,
+          style: const TextStyle(
+            fontSize: 18.0,
+          ),
+        ),
         actions: [
           PopupMenuButton<Locale>(
             icon: const Icon(Icons.language),
@@ -85,7 +98,8 @@ class PestDetectionResultPage extends StatelessWidget {
               return AppLocalizations.supportedLocales.map((locale) {
                 return PopupMenuItem(
                   value: locale,
-                  child: Text(LocaleProvider.getLanguageName(locale.languageCode)),
+                  child:
+                      Text(LocaleProvider.getLanguageName(locale.languageCode)),
                 );
               }).toList();
             },
@@ -95,69 +109,115 @@ class PestDetectionResultPage extends StatelessWidget {
       body: Consumer<PestDetectionProvider>(
         builder: (context, provider, child) {
           final displayImage = provider.currentImage ?? imageFile;
+          final theme = Theme.of(context);
 
           if (provider.state == PestDetectionState.loading) {
             return Center(
-                child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 20),
-                Text(appLocalizations.detectingPest, style: Theme.of(context).textTheme.titleMedium),
-              ],
-            ));
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 20),
+                  Text(
+                    appLocalizations.detectingPest,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ],
+              ),
+            );
           }
 
           if (provider.state == PestDetectionState.error) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Text(appLocalizations.errorOccurred, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.red)),
-                  const SizedBox(height: 10),
-                  Text(provider.errorMessage ?? 'Unknown error', textAlign: TextAlign.center),
-                  const SizedBox(height: 20),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (displayImage != null)
+                    Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      clipBehavior: Clip.antiAlias,
+                      child: Image.file(displayImage,
+                          fit: BoxFit.cover, height: 250),
+                    ),
+                  const SizedBox(height: 24),
+                  const Icon(Icons.error_outline, color: Colors.red, size: 60),
+                  const SizedBox(height: 16),
+                  Text(
+                    appLocalizations.errorOccurred,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineSmall
+                        ?.copyWith(color: Colors.red),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    provider.errorMessage ??
+                        'An unknown error occurred. Please try again later.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 24),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.refresh),
                     label: Text(appLocalizations.retry),
                     onPressed: () => _showRetryImageSourceActionSheet(context),
                   ),
-                ]),
+                ],
               ),
             );
           }
 
-          if (provider.state == PestDetectionState.success && provider.result != null) {
+          if (provider.state == PestDetectionState.success &&
+              provider.result != null) {
             final result = provider.result!;
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
+                  // Image card with rounded corners
                   if (displayImage != null)
                     Card(
-                      elevation: 2,
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
                       clipBehavior: Clip.antiAlias,
-                      child: Image.file(displayImage, fit: BoxFit.cover, height: 250),
-                    )
-                  else
-                    Container(
-                        height: 250,
-                        color: Colors.grey[300],
-                        child: Center(child: Text(appLocalizations.noImageSelected, textAlign: TextAlign.center))),
-                  const SizedBox(height: 20),
-                  _buildResultCard(context, appLocalizations, [
-                    _buildResultRow(context, appLocalizations.diseaseName, result.message.diseaseName),
-                    _buildResultRow(context, appLocalizations.confidenceScore, result.message.confidenceScore),
-                    _buildResultRow(context, appLocalizations.nextSteps, result.message.nextSteps, isLast: true),
-                    // Optionally display GeoInfo and LayerName if they are useful
-                    // _buildResultRow(context, 'Geo Info', result.geoInfo),
-                    // _buildResultRow(context, 'Layer Name', result.layerName, isLast: true),
-                  ]),
+                      child: Image.file(displayImage,
+                          fit: BoxFit.cover, height: 250),
+                    ),
+                  const SizedBox(height: 24),
+                  // New header for the results section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.bug_report,
+                          size: 40, color: Colors.green),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Pest Detection Results',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green[800]),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  // Re-designed result card
+                  _buildPestResultCard(
+                    context,
+                    appLocalizations,
+                    result.message.diseaseName,
+                    result.message.confidenceScore,
+                    result.message.nextSteps,
+                  ),
                   const SizedBox(height: 30),
+                  // Button text changed to "Another Pest Detection"
                   ElevatedButton.icon(
                     icon: const Icon(Icons.refresh),
-                    label: Text(appLocalizations.retry),
+                    label: const Text('Another Pest Detection'),
                     onPressed: () => _showRetryImageSourceActionSheet(context),
                   ),
                 ],
@@ -165,20 +225,21 @@ class PestDetectionResultPage extends StatelessWidget {
             );
           }
           return Center(
-             child: Padding(
+            child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(appLocalizations.noImageSelected, style: Theme.of(context).textTheme.titleMedium),
+                  Text(appLocalizations.noImageSelected,
+                      style: theme.textTheme.titleMedium),
                   const SizedBox(height: 20),
-                   ElevatedButton.icon(
-                        icon: const Icon(Icons.upload_file),
-                        label: Text(appLocalizations.uploadFromGallery),
-                        onPressed: () => _showRetryImageSourceActionSheet(context),
-                    ),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.upload_file),
+                    label: Text(appLocalizations.uploadFromGallery),
+                    onPressed: () => _showRetryImageSourceActionSheet(context),
+                  ),
                 ],
-              )
+              ),
             ),
           );
         },
@@ -186,38 +247,76 @@ class PestDetectionResultPage extends StatelessWidget {
     );
   }
 
-  Widget _buildResultCard(BuildContext context, AppLocalizations appLocalizations, List<Widget> children) {
+  Widget _buildPestResultCard(
+      BuildContext context,
+      AppLocalizations appLocalizations,
+      String diseaseName,
+      String confidenceScore,
+      String nextSteps) {
+    final theme = Theme.of(context);
     return Card(
-      elevation: 2,
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: children,
+          children: [
+            Text(
+              diseaseName,
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.red[800],
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Divider(),
+            const SizedBox(height: 16),
+            // Confidence score
+            _buildResultRow(
+              context,
+              appLocalizations.confidenceScore,
+              confidenceScore,
+            ),
+            // Next steps
+            _buildResultRow(
+              context,
+              appLocalizations.nextSteps,
+              nextSteps,
+              isLast: true,
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildResultRow(BuildContext context, String label, String value, {bool isLast = false}) {
+  Widget _buildResultRow(BuildContext context, String label, String value,
+      {bool isLast = false}) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 12.0),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.grey[700]),
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
-          if(!isLast) const SizedBox(height: 8),
-          if(!isLast) Divider(color: Colors.grey[300]),
         ],
       ),
     );
   }
-} 
+}

@@ -1,4 +1,5 @@
-// lib/data/datasources/fmb_layer_data_source.dart
+import 'package:crop_wizard/core/constants/app_global.dart';
+import 'package:crop_wizard/core/utils/custom_logger.dart';
 import 'package:dio/dio.dart';
 import '../models/fmb_response_model.dart';
 
@@ -10,15 +11,16 @@ class FmbLayerDataSourceImpl implements FmbLayerDataSource {
   final Dio dio;
 
   FmbLayerDataSourceImpl({required this.dio});
+  final environmentLogger = createLogger(
+    FmbLayerDataSourceImpl,
+    enableDebugLogs: AppGlobals.enableDebugLogs,
+  );
 
   @override
   Future<FmbResponseModel> getFmbData(String url) async {
     try {
-      print('Fetching FMB data from: $url');
-
-      // Test connection first
+      environmentLogger.i('Fetching FMB data from: $url');
       await _testConnection(url);
-
       final response = await dio.get(
         url,
         options: Options(
@@ -34,35 +36,24 @@ class FmbLayerDataSourceImpl implements FmbLayerDataSource {
           },
         ),
       );
-
       if (response.statusCode == 200) {
-        print('Successfully fetched data. Status: ${response.statusCode}');
-
-        // Validate response data
+        environmentLogger
+            .d('Successfully fetched data. Status: ${response.statusCode}');
         if (response.data == null) {
           throw Exception('Response data is null');
         }
-
         if (response.data is! Map<String, dynamic>) {
           throw Exception('Response data is not a valid JSON object');
         }
-
         final Map<String, dynamic> jsonData =
             response.data as Map<String, dynamic>;
-
-        // Log the structure for debugging
-        print('Response structure:');
-        print('Type: ${jsonData['type']}');
-        print('Features count: ${jsonData['features']?.length ?? 0}');
-
         return FmbResponseModel.fromJson(jsonData);
       } else {
         throw Exception('Failed to load FMB data: HTTP ${response.statusCode}');
       }
     } on DioException catch (e) {
-      print('Dio error: ${e.message}');
-      print('Error type: ${e.type}');
-
+      environmentLogger.e('Dio error: ${e.message}');
+      environmentLogger.e('Error type: ${e.type}');
       String errorMessage = 'Network error occurred';
       switch (e.type) {
         case DioExceptionType.connectionTimeout:
@@ -89,24 +80,20 @@ class FmbLayerDataSourceImpl implements FmbLayerDataSource {
 
       throw Exception(errorMessage);
     } catch (e) {
-      print('General error fetching FMB data: $e');
+      environmentLogger.e('General error fetching FMB data: $e');
       throw Exception('Error processing FMB data: ${e.toString()}');
     }
   }
 
-  // Test connection before making the actual request
   Future<void> _testConnection(String url) async {
     try {
       final testDio = Dio();
       testDio.options.connectTimeout = const Duration(seconds: 5);
-      testDio.options.receiveTimeout = const Duration(seconds: 5);
-
-      // Try a HEAD request first to test connectivity
+      testDio.options.receiveTimeout = const Duration(seconds: 60);
       await testDio.head(url);
-      print('Connection test successful');
+      environmentLogger.d('Connection test successful');
     } catch (e) {
-      print('Connection test failed: $e');
-      // Don't throw here, let the main request handle it
+      environmentLogger.e('Connection test failed: $e');
     }
   }
 }

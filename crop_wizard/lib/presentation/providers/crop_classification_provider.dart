@@ -2,12 +2,14 @@ import 'dart:io';
 import 'package:crop_wizard/domain/entities/crop_classification_result.dart';
 import 'package:crop_wizard/domain/usecases/classify_crop.dart';
 import 'package:flutter/material.dart';
+import 'package:crop_wizard/core/constants/app_global.dart';
+import 'package:crop_wizard/core/utils/custom_logger.dart';
 
 enum CropClassificationState { initial, loading, success, error }
 
 class CropClassificationProvider with ChangeNotifier {
   final ClassifyCrop _classifyCrop;
-  
+
   CropClassificationProvider(this._classifyCrop);
 
   CropClassificationState _state = CropClassificationState.initial;
@@ -15,13 +17,18 @@ class CropClassificationProvider with ChangeNotifier {
 
   List<CropClassificationResult> _results = [];
   List<CropClassificationResult> get results => _results;
-  CropClassificationResult? get firstResult => _results.isNotEmpty ? _results.first : null;
+  CropClassificationResult? get firstResult =>
+      _results.isNotEmpty ? _results.first : null;
 
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
   File? _currentImage;
   File? get currentImage => _currentImage;
+  final environmentLogger = createLogger(
+    CropClassificationProvider,
+    enableDebugLogs: AppGlobals.enableDebugLogs,
+  );
 
   Future<void> classify(File imageFile) async {
     _currentImage = imageFile;
@@ -39,7 +46,7 @@ class CropClassificationProvider with ChangeNotifier {
     } catch (e) {
       _errorMessage = e.toString();
       _state = CropClassificationState.error;
-      print("Error in CropClassificationProvider: $e");
+      environmentLogger.e("Error in CropClassificationProvider: $e");
     }
     notifyListeners();
   }

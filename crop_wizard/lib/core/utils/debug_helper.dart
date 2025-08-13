@@ -1,37 +1,52 @@
-// lib/core/utils/debug_helper.dart
+import 'package:crop_wizard/core/constants/app_global.dart';
+import 'package:crop_wizard/core/utils/custom_logger.dart';
+
 class DebugHelper {
+  static final environmentLogger = createLogger(
+    DebugHelper,
+    enableDebugLogs: AppGlobals.enableDebugLogs,
+  );
+
   static void logDataTypes(Map<String, dynamic> json) {
-    print('=== FMB Data Type Analysis ===');
+    environmentLogger.d('=== FMB Data Type Analysis ===');
     json.forEach((key, value) {
-      print('$key: ${value.runtimeType} = $value');
+      environmentLogger.i('$key: ${value.runtimeType} = $value');
     });
-    print('===============================');
+    environmentLogger.d('===============================');
   }
 
   static void validateCoordinates(
       List<dynamic> coordinates, String surveyNumber) {
     try {
-      print('Survey $surveyNumber - Coordinate structure:');
-      print('Type: ${coordinates.runtimeType}');
-      print('Length: ${coordinates.length}');
+      environmentLogger.d('Survey $surveyNumber - Coordinate structure:');
+      environmentLogger.d('Type: ${coordinates.runtimeType}');
+      environmentLogger.d('Length: ${coordinates.length}');
       if (coordinates.isNotEmpty) {
-        print('First element type: ${coordinates[0].runtimeType}');
+        environmentLogger
+            .d('First element type: ${coordinates[0].runtimeType}');
         if (coordinates[0] is List) {
           final firstLevel = coordinates[0] as List;
-          print('First level length: ${firstLevel.length}');
+          environmentLogger.d('First level length: ${firstLevel.length}');
           if (firstLevel.isNotEmpty) {
-            print('Second level type: ${firstLevel[0].runtimeType}');
+            environmentLogger
+                .d('Second level type: ${firstLevel[0].runtimeType}');
           }
         }
       }
     } catch (e) {
-      print('Error validating coordinates for survey $surveyNumber: $e');
+      environmentLogger
+          .e('Error validating coordinates for survey $surveyNumber: $e');
     }
   }
 }
 
 // lib/core/utils/safe_parser.dart
 class SafeParser {
+  static final environmentLogger = createLogger(
+    DebugHelper,
+    enableDebugLogs: AppGlobals.enableDebugLogs,
+  );
+
   static int? parseInt(dynamic value) {
     if (value == null) return null;
 
@@ -43,7 +58,7 @@ class SafeParser {
         return int.tryParse(value);
       }
     } catch (e) {
-      print('Error parsing int from $value: $e');
+      environmentLogger.e('Error parsing int from $value: $e');
     }
 
     return null;
@@ -60,7 +75,7 @@ class SafeParser {
         return double.tryParse(value);
       }
     } catch (e) {
-      print('Error parsing double from $value: $e');
+      environmentLogger.e('Error parsing double from $value: $e');
     }
 
     return null;
@@ -72,7 +87,7 @@ class SafeParser {
     try {
       return value.toString();
     } catch (e) {
-      print('Error parsing string from $value: $e');
+      environmentLogger.e('Error parsing string from $value: $e');
       return null;
     }
   }

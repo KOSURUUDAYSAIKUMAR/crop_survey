@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:crop_wizard/presentation/features/crop_classification/crop_classification_result_page.dart';
 import 'package:crop_wizard/presentation/features/pest_detection/pest_detection_result_page.dart';
 import 'package:crop_wizard/presentation/providers/crop_classification_provider.dart';
@@ -7,9 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:crop_wizard/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
-
 import '../fmb/fmb_result_page.dart'; // For File type
+import 'package:crop_wizard/core/constants/app_global.dart';
+import 'package:crop_wizard/core/utils/custom_logger.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,22 +21,24 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ImagePicker _picker = ImagePicker();
+  final environmentLogger = createLogger(
+    FmbResultPage,
+    enableDebugLogs: AppGlobals.enableDebugLogs,
+  );
 
   Future<void> _pickImageAndNavigate(
       BuildContext context, ImageSource source, String featureType) async {
     final pickedFile = await _picker.pickImage(source: source);
-
+    if (!context.mounted) {
+      return;
+    }
     if (pickedFile != null) {
       final imageFile = File(pickedFile.path);
-      print('$featureType - Image selected: ${imageFile.path}');
-      // ignore: use_build_context_synchronously
+      environmentLogger.i('$featureType - Image selected: ${imageFile.path}');
       final appLocalizations = AppLocalizations.of(context)!;
-
       if (featureType == appLocalizations.cropClassification) {
-        // ignore: use_build_context_synchronously
         Provider.of<CropClassificationProvider>(context, listen: false)
             .resetState();
-        // ignore: use_build_context_synchronously
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -43,9 +46,7 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       } else if (featureType == appLocalizations.pestDetection) {
-        // ignore: use_build_context_synchronously
         Provider.of<PestDetectionProvider>(context, listen: false).resetState();
-        // ignore: use_build_context_synchronously
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -54,8 +55,7 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } else {
-      print('$featureType - No image selected.');
-      // ignore: use_build_context_synchronously
+      environmentLogger.e('$featureType - No image selected.');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.noImageSelected)),
       );
@@ -99,11 +99,23 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
     final appLocalizations = AppLocalizations.of(context)!;
-
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(appLocalizations.homePageTitle),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.map_outlined),
+            tooltip: 'View FMB Map',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FmbResultPage(),
+                ),
+              );
+            },
+          ),
           PopupMenuButton<Locale>(
             icon: const Icon(Icons.language),
             tooltip: appLocalizations.language,
@@ -120,87 +132,120 @@ class _HomePageState extends State<HomePage> {
               }).toList();
             },
           ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const FmbResultPage(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.map_outlined),
-            label: const Text('View FMB Map'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green[700],
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              textStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
         ],
       ),
       body: Center(
         child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                _buildFeatureCard(
-                  context,
-                  title: appLocalizations.cropClassification,
-                  icon: Icons.eco,
-                  onTap: () {
-                    _showImageSourceActionSheet(
-                        context, appLocalizations.cropClassification);
-                  },
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Text(
+                'Welcome to Crop Wizard! 🧙‍♂️',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.primaryColor,
                 ),
-                // const SizedBox(height: 20), // Commented out SizedBox
-                // _buildFeatureCard( // Commented out Pest Detection Card
-                //   context,
-                //   title: appLocalizations.pestDetection,
-                //   icon: Icons.bug_report,
-                //   onTap: () {
-                //     _showImageSourceActionSheet(context, appLocalizations.pestDetection); // Pass localized string
-                //   },
-                // ),
-              ],
-            ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Select a feature to get started.',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 40),
+              _buildFeatureCard(
+                context,
+                title: appLocalizations.cropClassification,
+                description: 'Identify the type of crop from a photo.',
+                icon: Icons.eco,
+                color: Colors.green.shade50,
+                iconColor: Colors.green.shade700,
+                onTap: () {
+                  _showImageSourceActionSheet(
+                      context, appLocalizations.cropClassification);
+                },
+              ),
+              const SizedBox(height: 24),
+              _buildFeatureCard(
+                context,
+                title: appLocalizations.pestDetection,
+                description: 'Detect pests or diseases affecting your crop.',
+                icon: Icons.bug_report,
+                color: Colors.orange.shade50,
+                iconColor: Colors.orange.shade700,
+                onTap: () {
+                  _showImageSourceActionSheet(
+                      context, appLocalizations.pestDetection);
+                },
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFeatureCard(BuildContext context,
-      {required String title,
-      required IconData icon,
-      required VoidCallback onTap}) {
+  Widget _buildFeatureCard(
+    BuildContext context, {
+    required String title,
+    required String description,
+    required IconData icon,
+    required Color color,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
     return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      color: color,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
+          padding: const EdgeInsets.all(24.0),
+          child: Row(
             children: [
-              Icon(icon, size: 50, color: Theme.of(context).primaryColor),
-              const SizedBox(height: 15),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+              Container(
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(12),
+                child: Icon(icon, size: 36, color: iconColor),
               ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15.0,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 13,
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, size: 20, color: iconColor),
             ],
           ),
         ),

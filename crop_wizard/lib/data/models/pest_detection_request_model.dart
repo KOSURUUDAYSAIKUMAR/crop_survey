@@ -1,6 +1,6 @@
 class PestDetectionRequestModel {
   final String inputPrompt;
-  final String inputImage; // base64 image
+  final String inputImage;
   final String userId;
 
   PestDetectionRequestModel({
@@ -16,4 +16,4 @@ class PestDetectionRequestModel {
       'user_id': userId,
     };
   }
-} 
+}

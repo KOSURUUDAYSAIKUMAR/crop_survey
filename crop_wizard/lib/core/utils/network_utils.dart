@@ -1,20 +1,28 @@
 import 'package:dio/dio.dart';
+import 'package:crop_wizard/core/constants/app_global.dart';
+import 'package:crop_wizard/core/utils/custom_logger.dart';
 
 class NetworkUtils {
+  static final environmentLogger = createLogger(
+    NetworkUtils,
+    enableDebugLogs: AppGlobals.enableDebugLogs,
+  );
+
   static Future<bool> testConnectivity(String url) async {
     try {
       final dio = Dio();
       dio.options.connectTimeout = const Duration(seconds: 10);
       dio.options.receiveTimeout = const Duration(seconds: 10);
 
-      print('Testing connectivity to: $url');
+      environmentLogger.d('Testing connectivity to: $url');
 
       // Try a HEAD request first
       final response = await dio.head(url);
-      print('Connectivity test successful: ${response.statusCode}');
+      environmentLogger
+          .i('Connectivity test successful: ${response.statusCode}');
       return true;
     } catch (e) {
-      print('Connectivity test failed: $e');
+      environmentLogger.e('Connectivity test failed: $e');
       return false;
     }
   }

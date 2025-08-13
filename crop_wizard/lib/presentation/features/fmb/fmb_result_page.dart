@@ -1,4 +1,8 @@
 import 'dart:io';
+import 'package:crop_wizard/core/constants/app_global.dart';
+import 'package:crop_wizard/core/constants/custom_colors.dart';
+import 'package:crop_wizard/core/utils/custom_logger.dart';
+import 'package:logger/logger.dart';
 import 'package:crop_wizard/domain/entities/fmb_result.dart';
 import 'package:crop_wizard/presentation/providers/fmb_provider.dart';
 import 'package:flutter/material.dart';
@@ -24,9 +28,13 @@ class _FmbResultPageState extends State<FmbResultPage> {
   final MapController _mapController = MapController();
   final GlobalKey _mapContainerKey = GlobalKey();
 
+  final Logger environmentLogger = createLogger(
+    FmbResultPage,
+    enableDebugLogs: AppGlobals.enableDebugLogs,
+  );
+
   bool _showFilters = false;
   late AppLocalizations appLocalizations;
-  String? _selectedPolygonKide;
   @override
   void initState() {
     super.initState();
@@ -47,8 +55,8 @@ class _FmbResultPageState extends State<FmbResultPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Crop viewer'),
-        backgroundColor: Colors.green[700],
-        foregroundColor: Colors.white,
+        backgroundColor: CustomColors.greenShade(700),
+        foregroundColor: CustomColors.white,
         elevation: 0,
         actions: [
           IconButton(
@@ -76,7 +84,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.green[50]!, Colors.white],
+                  colors: [CustomColors.greenShade(50), CustomColors.white],
                 ),
               ),
               child: const Center(
@@ -84,7 +92,8 @@ class _FmbResultPageState extends State<FmbResultPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(CustomColors.green),
                     ),
                     SizedBox(height: 24),
                     Text(
@@ -99,7 +108,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
                       'Please wait while we fetch the land survey data',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey,
+                        color: CustomColors.grey,
                       ),
                     ),
                   ],
@@ -114,7 +123,10 @@ class _FmbResultPageState extends State<FmbResultPage> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.red[50]!, Colors.white],
+                  colors: [
+                    CustomColors.redShade(50),
+                    CustomColors.white,
+                  ],
                 ),
               ),
               child: Center(
@@ -126,11 +138,11 @@ class _FmbResultPageState extends State<FmbResultPage> {
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: CustomColors.white,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: CustomColors.blackWithOpacity(0.1),
                               blurRadius: 20,
                               offset: const Offset(0, 4),
                             ),
@@ -141,7 +153,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
                             Icon(
                               Icons.error_outline,
                               size: 64,
-                              color: Colors.red[400],
+                              color: CustomColors.redShade(400),
                             ),
                             const SizedBox(height: 16),
                             const Text(
@@ -155,15 +167,17 @@ class _FmbResultPageState extends State<FmbResultPage> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.red[50],
+                                color: CustomColors.redShade(50),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.red[200]!),
+                                border: Border.all(
+                                  color: CustomColors.redShade(200),
+                                ),
                               ),
                               child: Text(
                                 provider.error!,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: Colors.red[700],
+                                  color: CustomColors.redShade(700),
                                   fontSize: 14,
                                 ),
                               ),
@@ -182,8 +196,9 @@ class _FmbResultPageState extends State<FmbResultPage> {
                                   icon: const Icon(Icons.refresh),
                                   label: const Text('Retry'),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green[700],
-                                    foregroundColor: Colors.white,
+                                    backgroundColor:
+                                        CustomColors.greenShade(700),
+                                    foregroundColor: CustomColors.white,
                                   ),
                                 ),
                               ],
@@ -216,10 +231,10 @@ class _FmbResultPageState extends State<FmbResultPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: CustomColors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: CustomColors.blackWithOpacity(0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -230,7 +245,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
         children: [
           Row(
             children: [
-              Icon(Icons.tune, color: Colors.green[700], size: 20),
+              Icon(Icons.tune, color: CustomColors.greenShade(700), size: 20),
               const SizedBox(width: 8),
               const Text(
                 'Filter by Crop',
@@ -242,7 +257,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
                 icon: const Icon(Icons.clear_all, size: 16),
                 label: const Text('Clear Filter'),
                 style: TextButton.styleFrom(
-                  foregroundColor: Colors.grey[600],
+                  foregroundColor: CustomColors.greyShade(600),
                 ),
               ),
             ],
@@ -253,12 +268,12 @@ class _FmbResultPageState extends State<FmbResultPage> {
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: CustomColors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(color: CustomColors.greyShade(300)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: CustomColors.blackWithOpacity(0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -377,13 +392,13 @@ class _FmbResultPageState extends State<FmbResultPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: CustomColors.whiteWithOpacity(0.2),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
               '${provider.filteredResults.length} land parcels',
               style: const TextStyle(
-                color: Colors.white,
+                color: CustomColors.white,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
@@ -494,8 +509,12 @@ class _FmbResultPageState extends State<FmbResultPage> {
           if (coord.longitude < minLng) minLng = coord.longitude;
           if (coord.longitude > maxLng) maxLng = coord.longitude;
         }
-      } catch (e) {
-        print('Error processing coordinates for result: $e');
+      } catch (error, stack) {
+        environmentLogger.e(
+          {'message': 'Error processing coordinates for result'},
+          error: error,
+          stackTrace: stack,
+        );
         continue;
       }
     }
@@ -529,8 +548,15 @@ class _FmbResultPageState extends State<FmbResultPage> {
             ),
           );
         }
-      } catch (e) {
-        print('Error creating polygon for survey ${result.surveyNumber}: $e');
+      } catch (error, stack) {
+        environmentLogger.e(
+          {
+            'message':
+                'Error creating polygon for survey ${result.surveyNumber}'
+          },
+          error: error,
+          stackTrace: stack,
+        );
         continue;
       }
     }
@@ -562,27 +588,15 @@ class _FmbResultPageState extends State<FmbResultPage> {
           }
         }
       }
-    } catch (e) {
-      print('Error extracting coordinates: $e');
+    } catch (error, stack) {
+      environmentLogger.e(
+        {'message': 'Error extracting coordinates'},
+        error: error,
+        stackTrace: stack,
+      );
     }
 
     return points;
-  }
-
-  LatLng _calculateCenter(List<LatLng> points) {
-    if (points.isEmpty) {
-      return const LatLng(10.958724187008, 77.6164783449398); // Default center
-    }
-
-    double lat = 0;
-    double lng = 0;
-
-    for (final point in points) {
-      lat += point.latitude;
-      lng += point.longitude;
-    }
-
-    return LatLng(lat / points.length, lng / points.length);
   }
 
   void _handleMapTap(LatLng localPosition, FmbProvider provider) {
@@ -599,9 +613,15 @@ class _FmbResultPageState extends State<FmbResultPage> {
           _showPropertyDialog(result);
           break; // Show dialog for first matching polygon
         }
-      } catch (e) {
-        print(
-            'Error checking polygon hit for survey ${result.surveyNumber}: $e');
+      } catch (error, stack) {
+        environmentLogger.e(
+          {
+            'message':
+                'Error checking polygon hit for survey ${result.surveyNumber}'
+          },
+          error: error,
+          stackTrace: stack,
+        );
         continue;
       }
     }
@@ -673,7 +693,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: CustomColors.blackWithOpacity(0.2),
                     blurRadius: 20,
                     spreadRadius: 2,
                   ),
@@ -716,7 +736,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
                               Text(
                                 'Survey ${result.surveyNumber}/${result.subdivisionNumber}',
                                 style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: CustomColors.whiteWithOpacity(0.9),
                                 ),
                               ),
                             ],
@@ -995,17 +1015,13 @@ class _FmbResultPageState extends State<FmbResultPage> {
   Future<void> _pickImageAndNavigate(BuildContext context, ImageSource source,
       String featureType, String selectKide) async {
     final pickedFile = await ImagePicker().pickImage(source: source);
-    if (!mounted) return;
+    if (!context.mounted) return;
     if (pickedFile != null) {
       final imageFile = File(pickedFile.path);
-      print('$featureType - Image selected: ${imageFile.path}');
       if (featureType == appLocalizations.cropClassification) {
-        // ignore: use_build_context_synchronously
         Provider.of<CropClassificationProvider>(context, listen: false)
             .resetState();
-        // ignore: use_build_context_synchronously
         Navigator.push(
-          // ignore: use_build_context_synchronously
           context,
           MaterialPageRoute(
             builder: (_) => CropClassificationResultPage(
@@ -1015,9 +1031,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
           ),
         );
       } else if (featureType == appLocalizations.pestDetection) {
-        // ignore: use_build_context_synchronously
         Provider.of<PestDetectionProvider>(context, listen: false).resetState();
-        // ignore: use_build_context_synchronously
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -1026,8 +1040,7 @@ class _FmbResultPageState extends State<FmbResultPage> {
         );
       }
     } else {
-      print('$featureType - No image selected.');
-      // ignore: use_build_context_synchronously
+      environmentLogger.i('$featureType - No image selected.');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.noImageSelected)),
       );

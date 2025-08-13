@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:crop_wizard/domain/entities/pest_detection_result.dart';
 import 'package:crop_wizard/domain/usecases/detect_pest.dart';
 import 'package:flutter/material.dart';
+import 'package:crop_wizard/core/constants/app_global.dart';
+import 'package:crop_wizard/core/utils/custom_logger.dart';
 
 enum PestDetectionState { initial, loading, success, error }
 
@@ -23,6 +25,10 @@ class PestDetectionProvider with ChangeNotifier {
 
   File? _currentImage;
   File? get currentImage => _currentImage;
+  final environmentLogger = createLogger(
+    PestDetectionProvider,
+    enableDebugLogs: AppGlobals.enableDebugLogs,
+  );
 
   Future<void> detect(File imageFile) async {
     _currentImage = imageFile;
@@ -35,16 +41,16 @@ class PestDetectionProvider with ChangeNotifier {
     } catch (e) {
       _errorMessage = e.toString();
       _state = PestDetectionState.error;
-      print("Error in PestDetectionProvider: $e");
+      environmentLogger.e("Error in PestDetectionProvider: $e");
     }
     notifyListeners();
   }
 
-  void resetState(){
+  void resetState() {
     _state = PestDetectionState.initial;
     _result = null;
     _errorMessage = null;
     _currentImage = null;
     notifyListeners();
   }
-} 
+}

@@ -1,13 +1,19 @@
-// lib/data/repositories/fmb_repository_implementation.dart
 import '../../domain/entities/fmb_result.dart';
 import '../../domain/repositories/fmb_repository.dart';
 import '../datasources/fmb_layer_data_source.dart';
 import '../models/fmb_request_model.dart';
+import 'package:crop_wizard/core/constants/app_global.dart';
+import 'package:crop_wizard/core/utils/custom_logger.dart';
 
 class FmbRepositoryImplementation implements FmbRepository {
   final FmbLayerDataSource dataSource;
 
   FmbRepositoryImplementation({required this.dataSource});
+
+  final environmentLogger = createLogger(
+    FmbRepositoryImplementation,
+    enableDebugLogs: AppGlobals.enableDebugLogs,
+  );
 
   @override
   Future<List<FmbResult>> getFmbData(FmbRequestModel request) async {

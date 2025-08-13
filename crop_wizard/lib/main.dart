@@ -25,7 +25,6 @@ import 'presentation/features/home/home_page.dart'; // We'll create this next
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  print('Hive initialized successfully');
   final httpClient = http.Client(); // For services still using http package
   final dioClient = Dio(); // For services using Dio
 
@@ -33,11 +32,11 @@ void main() async {
   final dioFmb = DioConfig.createDio();
 
   // Add network debugging
-  print('Initializing Crop Wizard with enhanced network configuration...');
-  print('FMB Dio configured with:');
-  print('- Connect timeout: ${dioFmb.options.connectTimeout}');
-  print('- Receive timeout: ${dioFmb.options.receiveTimeout}');
-  print('- Send timeout: ${dioFmb.options.sendTimeout}');
+  // print('Initializing Crop Wizard with enhanced network configuration...');
+  // print('FMB Dio configured with:');
+  // print('- Connect timeout: ${dioFmb.options.connectTimeout}');
+  // print('- Receive timeout: ${dioFmb.options.receiveTimeout}');
+  // print('- Send timeout: ${dioFmb.options.sendTimeout}');
 
   // Crop Classification Dependencies (using Dio)
   final cropClassificationRemoteDataSource =
@@ -57,8 +56,6 @@ void main() async {
   final dataSource = FmbLayerDataSourceImpl(dio: dioFmb);
   final repository = FmbRepositoryImplementation(dataSource: dataSource);
   final fmbDataUseCase = FmbDataUseCase(repository: repository);
-
-  print('All dependencies initialized successfully');
 
   runApp(MyApp(
     classifyCropUseCase: classifyCropUseCase,

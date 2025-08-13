@@ -1,4 +1,6 @@
-// lib/data/models/fmb_response_model.dart
+import 'package:crop_wizard/core/constants/app_global.dart';
+import 'package:crop_wizard/core/utils/custom_logger.dart';
+
 class FmbResponseModel {
   final String type;
   final String name;
@@ -174,52 +176,12 @@ class FeaturePropertiesModel {
     this.parkId,
   });
 
-  // factory FeaturePropertiesModel.fromJson(Map<String, dynamic> json) {
-  //   return FeaturePropertiesModel(
-  //     kide: json['KIDE']?.toString(),
-  //     area: json['Area']?.toString(),
-  //     dc: json['DC']?.toString(),
-  //     tc: json['TC']?.toString(),
-  //     hc: json['HC']?.toString(),
-  //     vc: json['VC']?.toString(),
-  //     rotation: json['Rotation']?.toString(),
-  //     classType: json['Class']?.toString(),
-  //     classCat: json['ClassCat']?.toString(),
-  //     landId: _parseToInt(json['land_id']),
-  //     surveyNumber: _parseToInt(json['Survey Number']),
-  //     subdivisionNumber: json['Subdivision Number']?.toString(),
-  //     uniqueId1: json['Unique ID 1']?.toString(),
-  //     uniqueId2: json['Unique ID 2']?.toString(),
-  //     uidReginetAvail: _parseToInt(json['uid_reginet_avail']),
-  //     uidTnAvail: _parseToInt(json['uid_tn_avail']),
-  //     uidCsAvail: _parseToInt(json['uid_cs_avail']),
-  //     reginetGuidelineValue: json['reginet_Guideline_Value']?.toString(),
-  //     reginetGlv: _parseToInt(json['reginet_GLV']),
-  //     reginetUnitType: json['reginet_unit_type']?.toString(),
-  //     reginetLandClassification:
-  //         json['reginet_Land_Classification']?.toString(),
-  //     tamilnilamPattaNumber: _parseToInt(json['tamilnilam_patta_number']),
-  //     tamilnilamGovernmentPriority:
-  //         json['tamilnilam_government_priority']?.toString(),
-  //     tamilnilamExtentAres: _parseToInt(json['tamilnilam_extent_ares']),
-  //     tamilnilamLandType: json['tamilnilam_land_type']?.toString(),
-  //     tamilnilamOwnerDetails: json['tamilnilam_owner_details']?.toString(),
-  //     kharifCropClassification: json['kharif_crop_classification']?.toString(),
-  //     kharifCropName: json['kharif_crop_name']?.toString(),
-  //     kharifArea: _parseToDouble(json['kharif_area']),
-  //     rabiCropClassification: json['rabi_crop_classification']?.toString(),
-  //     rabiCropName: json['rabi_crop_name']?.toString(),
-  //     rabiArea: _parseToDouble(json['rabi_area']),
-  //     baseUid: json['base_uid']?.toString(),
-  //     parkName: json['Park_name']?.toString(),
-  //     parkId: _parseToInt(json['park_id']),
-  //   );
-  // }
+  static final environmentLogger = createLogger(
+    FeaturePropertiesModel,
+    enableDebugLogs: AppGlobals.enableDebugLogs,
+  );
 
   factory FeaturePropertiesModel.fromJson(Map<String, dynamic> json) {
-    // Debug: Print data types for troubleshooting
-    print('Processing feature properties...');
-
     return FeaturePropertiesModel(
       kide: _parseToString(json['KIDE']),
       area: _parseToString(json['Area']),
@@ -267,7 +229,8 @@ class FeaturePropertiesModel {
     try {
       return value.toString();
     } catch (e) {
-      print('Error parsing string from $value (${value.runtimeType}): $e');
+      environmentLogger
+          .e('Error parsing string from $value (${value.runtimeType}): $e');
       return null;
     }
   }
@@ -285,7 +248,8 @@ class FeaturePropertiesModel {
         return doubleValue?.round();
       }
     } catch (e) {
-      print('Error parsing int from $value (${value.runtimeType}): $e');
+      environmentLogger
+          .e('Error parsing int from $value (${value.runtimeType}): $e');
     }
 
     return null;
@@ -302,7 +266,8 @@ class FeaturePropertiesModel {
         return double.tryParse(value);
       }
     } catch (e) {
-      print('Error parsing double from $value (${value.runtimeType}): $e');
+      environmentLogger
+          .e('Error parsing double from $value (${value.runtimeType}): $e');
     }
 
     return null;

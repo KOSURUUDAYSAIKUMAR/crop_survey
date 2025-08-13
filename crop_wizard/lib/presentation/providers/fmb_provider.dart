@@ -6,6 +6,8 @@ import 'package:path_provider/path_provider.dart';
 import '../../domain/entities/fmb_result.dart';
 import '../../domain/usecases/fmb_data.dart';
 import '../../data/models/fmb_request_model.dart';
+import 'package:crop_wizard/core/constants/app_global.dart';
+import 'package:crop_wizard/core/utils/custom_logger.dart';
 
 class FmbProvider extends ChangeNotifier {
   final FmbDataUseCase fmbDataUseCase;
@@ -25,6 +27,11 @@ class FmbProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get selectedCrop => _selectedCrop;
+
+  final environmentLogger = createLogger(
+    FmbProvider,
+    enableDebugLogs: AppGlobals.enableDebugLogs,
+  );
 
   // Available options for filtering
   List<String> get availableCrops {
@@ -51,10 +58,10 @@ class FmbProvider extends ChangeNotifier {
         await Hive.initFlutter();
         _fmbBox = await Hive.openBox<String>('fmb_data');
         _isHiveInitialized = true;
-        print('Hive initialized successfully');
+        environmentLogger.d('Hive initialized successfully');
       }
     } catch (e) {
-      print('Error initializing Hive: $e');
+      environmentLogger.e('Error initializing Hive: $e');
       _error = 'Failed to initialize local storage: $e';
       notifyListeners();
     }
@@ -68,12 +75,12 @@ class FmbProvider extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      print('Loading FMB data from: $url');
+      environmentLogger.d('Loading FMB data from: $url');
 
       // Try to load from local storage first
       final cachedData = await _loadFromLocalStorage(url);
       if (cachedData != null && cachedData.isNotEmpty) {
-        print('Loading data from local storage');
+        environmentLogger.d('Loading data from local storage');
         _fmbResults = cachedData;
         _filteredResults = List.from(_fmbResults);
         _isLoading = false;
@@ -82,11 +89,12 @@ class FmbProvider extends ChangeNotifier {
       }
 
       // If no cached data, fetch from API
-      print('No cached data found, fetching from API');
+      environmentLogger.d('No cached data found, fetching from API');
       final request = FmbRequestModel(url: url);
       final data = await fmbDataUseCase.call(request);
 
-      print('FMB data loaded successfully: ${data.length} results');
+      environmentLogger
+          .i('FMB data loaded successfully: ${data.length} results');
       _fmbResults = data;
       _filteredResults = List.from(_fmbResults);
 
@@ -97,7 +105,7 @@ class FmbProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      print('Error in loadFmbData: $e');
+      environmentLogger.e('Error in loadFmbData: $e');
       _error = 'Failed to load FMB data: $e';
       _isLoading = false;
       notifyListeners();
@@ -112,9 +120,9 @@ class FmbProvider extends ChangeNotifier {
           jsonEncode(data.map((result) => result.toJson()).toList());
       await _fmbBox.put('fmb_data_$url', jsonString);
       await _fmbBox.put('last_updated', DateTime.now().toIso8601String());
-      print('Data saved to local storage: ${data.length} items');
+      environmentLogger.i('Data saved to local storage: ${data.length} items');
     } catch (e) {
-      print('Error saving to local storage: $e');
+      environmentLogger.e('Error saving to local storage: $e');
     }
   }
 
@@ -127,11 +135,12 @@ class FmbProvider extends ChangeNotifier {
         final List<dynamic> jsonList = jsonDecode(jsonString);
         final results =
             jsonList.map((json) => FmbResult.fromJson(json)).toList();
-        print('Loaded from local storage: ${results.length} items');
+        environmentLogger
+            .i('Loaded from local storage: ${results.length} items');
         return results;
       }
     } catch (e) {
-      print('Error loading from local storage: $e');
+      environmentLogger.e('Error loading from local storage: $e');
     }
     return null;
   }
@@ -156,15 +165,15 @@ class FmbProvider extends ChangeNotifier {
       };
 
       await file.writeAsString(jsonEncode(geoJson));
-      print('GeoJSON saved to: ${file.path}');
+      environmentLogger.i('GeoJSON saved to: ${file.path}');
     } catch (e) {
-      print('Error saving GeoJSON: $e');
+      environmentLogger.e('Error saving GeoJSON: $e');
     }
   }
 
   Future<void> updateCropForPolygon(String kide, String newCrop) async {
     try {
-      print('Updating crop for KIDE: $kide to: $newCrop');
+      environmentLogger.i('Updating crop for KIDE: $kide to: $newCrop');
 
       // Find the polygon by KIDE
       final index = _fmbResults.indexWhere((result) => result.kide == kide);
@@ -206,12 +215,12 @@ class FmbProvider extends ChangeNotifier {
         await _saveAsGeoJSON(_fmbResults);
 
         notifyListeners();
-        print('Crop updated successfully for KIDE: $kide');
+        environmentLogger.i('Crop updated successfully for KIDE: $kide');
       } else {
-        print('No polygon found with KIDE: $kide');
+        environmentLogger.e('No polygon found with KIDE: $kide');
       }
     } catch (e) {
-      print('Error updating crop for polygon: $e');
+      environmentLogger.e('Error updating crop for polygon: $e');
       _error = 'Failed to update crop: $e';
       notifyListeners();
     }
@@ -230,10 +239,10 @@ class FmbProvider extends ChangeNotifier {
             jsonEncode(_fmbResults.map((result) => result.toJson()).toList());
         await _fmbBox.put(keys.first, jsonString);
         await _fmbBox.put('last_updated', DateTime.now().toIso8601String());
-        print('Local storage updated with new crop data');
+        environmentLogger.i('Local storage updated with new crop data');
       }
     } catch (e) {
-      print('Error updating local storage: $e');
+      environmentLogger.e('Error updating local storage: $e');
     }
   }
 
@@ -256,7 +265,7 @@ class FmbProvider extends ChangeNotifier {
       return true;
     }).toList();
 
-    print(
+    environmentLogger.i(
         'Applied filters. Showing ${_filteredResults.length} of ${_fmbResults.length} results');
   }
 
@@ -279,9 +288,9 @@ class FmbProvider extends ChangeNotifier {
     try {
       if (!_isHiveInitialized) return;
       await _fmbBox.clear();
-      print('Local cache cleared');
+      environmentLogger.d('Local cache cleared');
     } catch (e) {
-      print('Error clearing local cache: $e');
+      environmentLogger.e('Error clearing local cache: $e');
     }
   }
 

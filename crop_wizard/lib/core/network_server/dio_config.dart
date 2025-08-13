@@ -1,7 +1,13 @@
-// lib/core/network/dio_config.dart
+import 'package:crop_wizard/core/constants/app_global.dart';
+import 'package:crop_wizard/core/utils/custom_logger.dart';
 import 'package:dio/dio.dart';
 
 class DioConfig {
+  static final environmentLogger = createLogger(
+    DioConfig,
+    enableDebugLogs: AppGlobals.enableDebugLogs,
+  );
+
   static Dio createDio() {
     final dio = Dio();
 
@@ -32,7 +38,7 @@ class DioConfig {
         responseBody: true,
         logPrint: (object) {
           // You can use print or your preferred logging mechanism
-          print(object);
+          environmentLogger.i(object);
         },
       ),
     );

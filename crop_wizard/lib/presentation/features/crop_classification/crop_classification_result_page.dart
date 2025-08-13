@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:crop_wizard/core/constants/custom_colors.dart';
 import 'package:crop_wizard/presentation/providers/crop_classification_provider.dart';
 import 'package:crop_wizard/presentation/providers/fmb_provider.dart';
 import 'package:crop_wizard/presentation/providers/locale_provider.dart';
@@ -41,10 +42,13 @@ class _CropClassificationResultPageState
           .classify(newImageFile);
     } else {
       // ignore: use_build_context_synchronously
+      if (!context.mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(AppLocalizations.of(context)!
-                .noImageSelected)), // Or a more specific message
+          content: Text(AppLocalizations.of(context)!.noImageSelected),
+        ), // Or a more specific message
       );
     }
   }
@@ -106,7 +110,7 @@ class _CropClassificationResultPageState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Polygon updated successfully with crop: $cropName'),
-            backgroundColor: Colors.green,
+            backgroundColor: CustomColors.green,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -116,7 +120,7 @@ class _CropClassificationResultPageState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to update polygon: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: CustomColors.red,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -136,7 +140,7 @@ class _CropClassificationResultPageState
             style: Theme.of(context)
                 .textTheme
                 .titleSmall
-                ?.copyWith(color: Colors.grey[700]),
+                ?.copyWith(color: CustomColors.greyShade(700)),
           ),
           const SizedBox(height: 4),
           Text(
@@ -147,7 +151,10 @@ class _CropClassificationResultPageState
                 ?.copyWith(fontWeight: FontWeight.bold),
           ),
           if (!isLast) const SizedBox(height: 8),
-          if (!isLast) Divider(color: Colors.grey[300]),
+          if (!isLast)
+            Divider(
+              color: CustomColors.greyShade(300),
+            ),
         ],
       ),
     );
@@ -228,7 +235,7 @@ class _CropClassificationResultPageState
                           style: Theme.of(context)
                               .textTheme
                               .headlineSmall
-                              ?.copyWith(color: Colors.red)),
+                              ?.copyWith(color: CustomColors.red)),
                       const SizedBox(height: 10),
                       Text(provider.errorMessage ?? 'Unknown error',
                           textAlign: TextAlign.center),
@@ -262,15 +269,18 @@ class _CropClassificationResultPageState
                           fit: BoxFit.cover, height: 250),
                     ),
                   const SizedBox(height: 20),
-                  const Icon(Icons.info_outline, color: Colors.blue, size: 60),
+                  const Icon(
+                    Icons.info_outline,
+                    color: CustomColors.blue,
+                    size: 60,
+                  ),
                   const SizedBox(height: 10),
                   Text(
                     'No Crop Identified',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineSmall
-                        ?.copyWith(color: Colors.blue),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: CustomColors.blue,
+                        ),
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -326,7 +336,7 @@ class _CropClassificationResultPageState
                   else
                     Container(
                       height: 250,
-                      color: Colors.grey[300],
+                      color: CustomColors.greyShade(300),
                       child: Center(
                         child: Text(
                           appLocalizations.noImageSelected,
@@ -353,8 +363,8 @@ class _CropClassificationResultPageState
                       icon: const Icon(Icons.update, size: 16),
                       label: const Text('Update data in fmb'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green[700],
-                        foregroundColor: Colors.white,
+                        backgroundColor: CustomColors.greenShade(700),
+                        foregroundColor: CustomColors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
@@ -483,7 +493,11 @@ class _CropClassificationResultPageState
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
+          const Icon(
+            Icons.check_circle_outline,
+            color: CustomColors.green,
+            size: 20,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
