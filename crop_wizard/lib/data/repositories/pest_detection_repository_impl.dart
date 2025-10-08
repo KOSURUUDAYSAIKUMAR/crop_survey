@@ -11,6 +11,7 @@ import 'package:crop_wizard/core/utils/custom_logger.dart';
 
 class PestDetectionRepositoryImpl implements PestDetectionRepository {
   final PestDetectionRemoteDataSource remoteDataSource;
+
   final String _userId = "+916379639531";
 
   PestDetectionRepositoryImpl({required this.remoteDataSource});
